@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Fling Punch - Swing Your Way Home!</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --sat: env(safe-area-inset-top);
+      --sab: env(safe-area-inset-bottom);
+    }
+    
+    body {
+      overflow: hidden;
+      touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      background: #1a1a2e;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    
+    canvas { display: block; }
+    
+    #ui-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      padding-top: max(20px, var(--sat));
+      padding-bottom: max(20px, var(--sab));
+    }
+    
+    #score-display {
+      position: absolute;
+      top: max(20px, var(--sat));
+      left: 20px;
+      color: #fff;
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    #height-display {
+      position: absolute;
+      top: max(50px, calc(var(--sat) + 30px));
+      left: 20px;
+      color: #ffd700;
+      font-size: 18px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    
+    #combo-display {
+      position: absolute;
+      top: 50%;
+      right: 20px;
+      transform: translateY(-50%);
+      color: #ff6b6b;
+      font-size: 36px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    
+    #combo-display.active {
+      opacity: 1;
+      animation: comboPulse 0.3s ease-out;
+    }
+    
+    @keyframes comboPulse {
+      0% { transform: translateY(-50%) scale(1.5); }
+      100% { transform: translateY(-50%) scale(1); }
+    }
+    
+    #game-over {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s;
+    }
+    
+    #game-over.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    #game-over h1 {
+      color: #ff6b6b;
+      font-size: 48px;
+      margin-bottom: 20px;
+      text-shadow: 0 0 20px rgba(255,107,107,0.5);
+    }
+    
+    #game-over .stats {
+      color: #fff;
+      font-size: 24px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    #game-over .stats span {
+      color: #ffd700;
+    }
+    
+    #restart-btn {
+      background: linear-gradient(180deg, #ff7f50 0%, #ff6347 100%);
+      border: none;
+      color: white;
+      padding: 15px 40px;
+      font-size: 24px;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255,99,71,0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    #restart-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(255,99,71,0.6);
+    }
+    
+    #restart-btn:active {
+      transform: scale(0.95);
+    }
+    
+    #start-screen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(180deg, #2d2a3e 0%, #1a1a2e 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    
+    #start-screen h1 {
+      color: #ff7f50;
+      font-size: 56px;
+      margin-bottom: 10px;
+      text-shadow: 0 0 30px rgba(255,127,80,0.5);
+    }
+    
+    #start-screen .subtitle {
+      color: #87ceeb;
+      font-size: 20px;
+      margin-bottom: 40px;
+    }
+    
+    #start-btn {
+      background: linear-gradient(180deg, #ff7f50 0%, #ff6347 100%);
+      border: none;
+      color: white;
+      padding: 20px 60px;
+      font-size: 28px;
+      border-radius: 40px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(255,99,71,0.4);
+      transition: transform 0.2s;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    #start-btn:active {
+      transform: scale(0.95);
+      animation: none;
+    }
+    
+    #instructions {
+      color: #888;
+      font-size: 16px;
+      margin-top: 30px;
+      text-align: center;
+    }
+    
+    #aim-indicator {
+      position: fixed;
+      pointer-events: none;
+      z-index: 50;
+    }
+    
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="start-screen">
+    <h1>🐵 Fling Punch</h1>
+    <div class="subtitle">Swing Your Way Home!</div>
+    <button id="start-btn">TAP TO PLAY</button>
+    <div id="instructions">
+      Drag to aim • Release to fling<br>
+      Reach for the sky!
+    </div>
+  </div>
+  
+  <div id="ui-overlay">
+    <div id="score-display">🍌 0</div>
+    <div id="height-display">📏 0m</div>
+    <div id="combo-display">x1</div>
+  </div>
+  
+  <div id="game-over">
+    <h1>Oh no!</h1>
+    <div class="stats">
+      You reached <span id="final-height">0</span> meters<br>
+      Score: <span id="final-score">0</span> 🍌
+    </div>
+    <button id="restart-btn">Try Again</button>
+  </div>
+  
+  <canvas id="aim-indicator" width="200" height="200"></canvas>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ============================================
+// GAME STATE
+// ============================================
+const State = {
+  MENU: 'menu',
+  PLAYING: 'playing',
+  AIMING: 'aiming',
+  FLYING: 'flying',
+  SWINGING: 'swinging',
+  FALLING: 'falling',
+  GAME_OVER: 'game_over'
+};
+
+let gameState = State.MENU;
+let score = 0;
+let maxHeight = 0;
+let combo = 0;
+let comboTimer = 0;
+let lastGrabTime = 0;
+
+// ============================================
+// THREE.JS SETUP
+// ============================================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb, 30, 80);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 5, 15);
+
+const renderer = new THREE.WebGLRenderer({
+  antialias: window.devicePixelRatio < 2,
+  powerPreference: 'high-performance'
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+// ============================================
+// LIGHTING
+// ============================================
+const ambientLight = new THREE.AmbientLight(0xffeedd, 0.6);
+scene.add(ambientLight);
+
+const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+sunLight.position.set(5, 20, 10);
+scene.add(sunLight);
+
+const fillLight = new THREE.DirectionalLight(0x8080ff, 0.3);
+fillLight.position.set(-5, 5, -5);
+scene.add(fillLight);
+
+// ============================================
+// SHARED GEOMETRIES & MATERIALS
+// ============================================
+const SHARED = {
+  geometries: {
+    branch: new THREE.CylinderGeometry(0.15, 0.2, 3, 8),
+    leaf: new THREE.SphereGeometry(0.8, 8, 6),
+    particle: new THREE.SphereGeometry(0.1, 4, 4),
+    banana: new THREE.CapsuleGeometry(0.15, 0.4, 4, 8)
+  },
+  materials: {
+    branch: new THREE.MeshLambertMaterial({ color: 0x8B4513 }),
+    leaf: new THREE.MeshLambertMaterial({ color: 0x228B22 }),
+    punch: new THREE.MeshLambertMaterial({ color: 0x8B7355 }),
+    punchFace: new THREE.MeshBasicMaterial({ color: 0xFFB5A7 }),
+    banana: new THREE.MeshLambertMaterial({ color: 0xFFD700 }),
+    particle: new THREE.MeshBasicMaterial({ color: 0xFFFFFF })
+  }
+};
+
+// ============================================
+// PUNCH CHARACTER
+// ============================================
+class Punch {
+  constructor() {
+    this.group = new THREE.Group();
+    
+    // Body (sphere with squash/stretch)
+    const bodyGeo = new THREE.SphereGeometry(0.5, 16, 12);
+    this.body = new THREE.Mesh(bodyGeo, SHARED.materials.punch);
+    this.body.scale.set(1, 1.1, 1);
+    this.group.add(this.body);
+    
+    // Face (pink circle on front)
+    const faceGeo = new THREE.CircleGeometry(0.35, 16);
+    this.face = new THREE.Mesh(faceGeo, SHARED.materials.punchFace);
+    this.face.position.z = 0.4;
+    this.group.add(this.face);
+    
+    // Eyes (big and shiny)
+    const eyeGeo = new THREE.CircleGeometry(0.12, 12);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const highlightGeo = new THREE.CircleGeometry(0.04, 8);
+    const highlightMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+    
+    // Left eye
+    this.leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+    this.leftEye.position.set(-0.12, 0.1, 0.45);
+    this.group.add(this.leftEye);
+    
+    const leftHighlight = new THREE.Mesh(highlightGeo, highlightMat);
+    leftHighlight.position.set(-0.08, 0.14, 0.46);
+    this.group.add(leftHighlight);
+    
+    // Right eye
+    this.rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+    this.rightEye.position.set(0.12, 0.1, 0.45);
+    this.group.add(this.rightEye);
+    
+    const rightHighlight = new THREE.Mesh(highlightGeo, highlightMat);
+    rightHighlight.position.set(0.16, 0.14, 0.46);
+    this.group.add(rightHighlight);
+    
+    // Ears
+    const earGeo = new THREE.SphereGeometry(0.15, 8, 6);
+    const earMat = new THREE.MeshLambertMaterial({ color: 0x8B7355 });
+    
+    this.leftEar = new THREE.Mesh(earGeo, earMat);
+    this.leftEar.position.set(-0.45, 0.35, 0);
+    this.group.add(this.leftEar);
+    
+    this.rightEar = new THREE.Mesh(earGeo, earMat);
+    this.rightEar.position.set(0.45, 0.35, 0);
+    this.group.add(this.rightEar);
+    
+    // Tail (curved line of spheres)
+    this.tailSegments = [];
+    for (let i = 0; i < 5; i++) {
+      const seg = new THREE.Mesh(
+        new THREE.SphereGeometry(0.08 - i * 0.01, 6, 4),
+        earMat
+      );
+      seg.position.set(0, -0.3 - i * 0.15, -0.3 - i * 0.1);
+      this.group.add(seg);
+      this.tailSegments.push(seg);
+    }
+    
+    // Physics
+    this.velocity = new THREE.Vector3();
+    this.position = new THREE.Vector3(0, 5, 0);
+    this.rotation = 0;
+    this.angularVelocity = 0;
+    
+    // Swing state
+    this.attachedBranch = null;
+    this.swingAngle = 0;
+    this.swingVelocity = 0;
+    this.ropeLength = 2;
+    
+    // Animation state
+    this.squash = 1;
+    this.targetSquash = 1;
+    this.blinkTimer = 0;
+    this.isBlinking = false;
+    this.expression = 'normal'; // normal, happy, scared
+    
+    scene.add(this.group);
+  }
+  
+  update(dt) {
+    // Blink timer
+    this.blinkTimer += dt;
+    if (!this.isBlinking && this.blinkTimer > 3 + Math.random() * 2) {
+      this.isBlinking = true;
+      this.blinkTimer = 0;
+    }
+    if (this.isBlinking && this.blinkTimer > 0.15) {
+      this.isBlinking = false;
+      this.blinkTimer = 0;
+    }
+    
+    // Eye scale for blink
+    const eyeScale = this.isBlinking ? 0.1 : 1;
+    this.leftEye.scale.y = eyeScale;
+    this.rightEye.scale.y = eyeScale;
+    
+    // Squash/stretch interpolation
+    this.squash += (this.targetSquash - this.squash) * 0.2;
+    this.body.scale.y = this.squash;
+    this.body.scale.x = 1 / Math.sqrt(this.squash);
+    this.body.scale.z = 1 / Math.sqrt(this.squash);
+    
+    // Tail animation (follows movement with delay)
+    const tailCurl = this.expression === 'happy' ? 0.3 : 
+                     this.expression === 'scared' ? -0.2 : 0;
+    for (let i = 0; i < this.tailSegments.length; i++) {
+      const seg = this.tailSegments[i];
+      const wave = Math.sin(Date.now() * 0.003 + i * 0.5) * 0.1;
+      seg.position.x = wave + Math.sin(tailCurl * (i + 1)) * 0.2;
+    }
+    
+    // Ear animation
+    const earDroop = this.expression === 'scared' ? -0.1 : 0;
+    this.leftEar.position.y = 0.35 + earDroop;
+    this.rightEar.position.y = 0.35 + earDroop;
+    
+    // Update group position
+    this.group.position.copy(this.position);
+    this.group.rotation.z = this.rotation;
+  }
+  
+  applySquash(amount) {
+    this.targetSquash = amount;
+  }
+  
+  setExpression(expr) {
+    this.expression = expr;
+  }
+}
+
+// ============================================
+// BRANCH SYSTEM
+// ============================================
+class BranchManager {
+  constructor() {
+    this.branches = [];
+    this.pool = [];
+    this.spawnY = 0;
+    this.lastBranchY = 0;
+  }
+  
+  createBranch() {
+    let branch;
+    if (this.pool.length > 0) {
+      branch = this.pool.pop();
+      branch.mesh.visible = true;
+      branch.leaves.visible = true;
+    } else {
+      const mesh = new THREE.Mesh(SHARED.geometries.branch, SHARED.materials.branch);
+      mesh.rotation.z = Math.PI / 2;
+      
+      const leaves = new THREE.Mesh(SHARED.geometries.leaf, SHARED.materials.leaf);
+      leaves.scale.set(1.5, 1, 1);
+      
+      branch = { mesh, leaves, active: true };
+      scene.add(mesh);
+      scene.add(leaves);
+    }
+    return branch;
+  }
+  
+  spawnBranch(y) {
+    const branch = this.createBranch();
+    const x = (Math.random() - 0.5) * 10;
+    
+    branch.mesh.position.set(x, y, 0);
+    branch.leaves.position.set(x + (Math.random() > 0.5 ? 1.5 : -1.5), y + 0.3, 0);
+    branch.y = y;
+    branch.x = x;
+    branch.active = true;
+    branch.grabbed = false;
+    
+    this.branches.push(branch);
+    return branch;
+  }
+  
+  update(cameraY) {
+    // Spawn new branches ahead
+    while (this.spawnY < cameraY + 30) {
+      this.spawnY += 2 + Math.random() * 2;
+      this.spawnBranch(this.spawnY);
+    }
+    
+    // Remove branches below camera
+    for (let i = this.branches.length - 1; i >= 0; i--) {
+      const branch = this.branches[i];
+      if (branch.y < cameraY - 10) {
+        branch.mesh.visible = false;
+        branch.leaves.visible = false;
+        branch.active = false;
+        this.pool.push(branch);
+        this.branches.splice(i, 1);
+      }
+    }
+  }
+  
+  getNearestBranch(position, radius) {
+    let nearest = null;
+    let nearestDist = radius;
+    
+    for (const branch of this.branches) {
+      if (!branch.active) continue;
+      
+      const dx = branch.x - position.x;
+      const dy = branch.y - position.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearest = branch;
+      }
+    }
+    
+    return nearest;
+  }
+  
+  reset() {
+    for (const branch of this.branches) {
+      branch.mesh.visible = false;
+      branch.leaves.visible = false;
+      this.pool.push(branch);
+    }
+    this.branches = [];
+    this.spawnY = 0;
+    
+    // Create initial branches
+    for (let y = 3; y < 20; y += 3) {
+      this.spawnBranch(y);
+    }
+    this.spawnY = 20;
+  }
+}
+
+// ============================================
+// PARTICLE SYSTEM
+// ============================================
+class ParticleSystem {
+  constructor(maxParticles = 100) {
+    this.particles = [];
+    this.pool = [];
+    this.maxParticles = maxParticles;
+  }
+  
+  emit(x, y, z, count, config = {}) {
+    const {
+      color = 0xFFFFFF,
+      speed = 3,
+      lifetime = 0.5,
+      size = 0.1,
+      gravity = -10
+    } = config;
+    
+    for (let i = 0; i < count && this.particles.length < this.maxParticles; i++) {
+      let particle;
+      if (this.pool.length > 0) {
+        particle = this.pool.pop();
+        particle.mesh.visible = true;
+      } else {
+        const geo = new THREE.SphereGeometry(size, 4, 4);
+        const mat = new THREE.MeshBasicMaterial({ color });
+        const mesh = new THREE.Mesh(geo, mat);
+        scene.add(mesh);
+        particle = { mesh, velocity: new THREE.Vector3() };
+      }
+      
+      particle.mesh.position.set(x, y, z);
+      particle.mesh.material.color.setHex(color);
+      particle.velocity.set(
+        (Math.random() - 0.5) * speed,
+        Math.random() * speed,
+        (Math.random() - 0.5) * speed * 0.5
+      );
+      particle.lifetime = lifetime;
+      particle.maxLifetime = lifetime;
+      particle.gravity = gravity;
+      
+      this.particles.push(particle);
+    }
+  }
+  
+  update(dt) {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      
+      p.velocity.y += p.gravity * dt;
+      p.mesh.position.add(p.velocity.clone().multiplyScalar(dt));
+      
+      p.lifetime -= dt;
+      p.mesh.material.opacity = p.lifetime / p.maxLifetime;
+      
+      if (p.lifetime <= 0) {
+        p.mesh.visible = false;
+        this.pool.push(p);
+        this.particles.splice(i, 1);
+      }
+    }
+  }
+  
+  reset() {
+    for (const p of this.particles) {
+      p.mesh.visible = false;
+      this.pool.push(p);
+    }
+    this.particles = [];
+  }
+}
+
+// ============================================
+// BANANA COLLECTIBLES
+// ============================================
+class BananaManager {
+  constructor() {
+    this.bananas = [];
+    this.pool = [];
+    this.spawnY = 10;
+  }
+  
+  createBanana() {
+    let banana;
+    if (this.pool.length > 0) {
+      banana = this.pool.pop();
+      banana.mesh.visible = true;
+    } else {
+      const mesh = new THREE.Mesh(SHARED.geometries.banana, SHARED.materials.banana);
+      mesh.rotation.z = Math.PI / 4;
+      scene.add(mesh);
+      banana = { mesh, active: true };
+    }
+    return banana;
+  }
+  
+  update(cameraY, punchPos) {
+    // Spawn bananas
+    while (this.spawnY < cameraY + 40) {
+      if (Math.random() < 0.3) { // 30% chance per spawn point
+        const banana = this.createBanana();
+        banana.mesh.position.set(
+          (Math.random() - 0.5) * 12,
+          this.spawnY,
+          0
+        );
+        banana.y = this.spawnY;
+        banana.active = true;
+        this.bananas.push(banana);
+      }
+      this.spawnY += 5;
+    }
+    
+    // Animate and check collection
+    for (let i = this.bananas.length - 1; i >= 0; i--) {
+      const banana = this.bananas[i];
+      
+      // Spin animation
+      banana.mesh.rotation.y += 0.05;
+      banana.mesh.position.y = banana.y + Math.sin(Date.now() * 0.003) * 0.2;
+      
+      // Check collection
+      const dist = banana.mesh.position.distanceTo(punchPos);
+      if (dist < 1 && banana.active) {
+        banana.active = false;
+        banana.mesh.visible = false;
+        this.pool.push(banana);
+        this.bananas.splice(i, 1);
+        return true; // Collected!
+      }
+      
+      // Remove if below camera
+      if (banana.y < cameraY - 10) {
+        banana.mesh.visible = false;
+        this.pool.push(banana);
+        this.bananas.splice(i, 1);
+      }
+    }
+    
+    return false;
+  }
+  
+  reset() {
+    for (const b of this.bananas) {
+      b.mesh.visible = false;
+      this.pool.push(b);
+    }
+    this.bananas = [];
+    this.spawnY = 10;
+  }
+}
+
+// ============================================
+// BACKGROUND
+// ============================================
+function createBackground() {
+  // Gradient sky (done via scene background changes)
+  
+  // Distant mountains/trees (simple silhouettes)
+  const mountainGeo = new THREE.BufferGeometry();
+  const vertices = [];
+  for (let i = 0; i < 20; i++) {
+    const x = (i - 10) * 8;
+    const h = 5 + Math.random() * 10;
+    vertices.push(x - 4, 0, -30);
+    vertices.push(x + 4, 0, -30);
+    vertices.push(x, h, -30);
+  }
+  mountainGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  const mountainMat = new THREE.MeshBasicMaterial({ color: 0x2d5a27, side: THREE.DoubleSide });
+  const mountains = new THREE.Mesh(mountainGeo, mountainMat);
+  scene.add(mountains);
+  
+  // Ground plane
+  const groundGeo = new THREE.PlaneGeometry(100, 100);
+  const groundMat = new THREE.MeshLambertMaterial({ color: 0x3d7a32 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -2;
+  scene.add(ground);
+}
+
+// ============================================
+// AUDIO SYSTEM (Procedural)
+// ============================================
+class AudioManager {
+  constructor() {
+    this.ctx = null;
+    this.initialized = false;
+  }
+  
+  async init() {
+    if (this.initialized) return;
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.initialized = true;
+    if (this.ctx.state === 'suspended') {
+      await this.ctx.resume();
+    }
+  }
+  
+  playJump() {
+    if (!this.initialized) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.15);
+  }
+  
+  playGrab() {
+    if (!this.initialized) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.1);
+  }
+  
+  playCollect() {
+    if (!this.initialized) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523, this.ctx.currentTime);
+    osc.frequency.setValueAtTime(659, this.ctx.currentTime + 0.1);
+    osc.frequency.setValueAtTime(784, this.ctx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.3);
+  }
+  
+  playFall() {
+    if (!this.initialized) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.5);
+    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.5);
+  }
+}
+
+// ============================================
+// INPUT HANDLING
+// ============================================
+class InputController {
+  constructor() {
+    this.isDragging = false;
+    this.startPos = { x: 0, y: 0 };
+    this.currentPos = { x: 0, y: 0 };
+    this.aimCanvas = document.getElementById('aim-indicator');
+    this.aimCtx = this.aimCanvas.getContext('2d');
+    
+    // Touch events
+    document.addEventListener('touchstart', (e) => this.onStart(e.touches[0]), { passive: false });
+    document.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      this.onMove(e.touches[0]);
+    }, { passive: false });
+    document.addEventListener('touchend', () => this.onEnd());
+    
+    // Mouse events
+    document.addEventListener('mousedown', (e) => this.onStart(e));
+    document.addEventListener('mousemove', (e) => this.onMove(e));
+    document.addEventListener('mouseup', () => this.onEnd());
+  }
+  
+  onStart(e) {
+    if (gameState !== State.PLAYING && gameState !== State.SWINGING) return;
+    
+    this.isDragging = true;
+    this.startPos = { x: e.clientX, y: e.clientY };
+    this.currentPos = { x: e.clientX, y: e.clientY };
+    gameState = State.AIMING;
+  }
+  
+  onMove(e) {
+    if (!this.isDragging) return;
+    this.currentPos = { x: e.clientX, y: e.clientY };
+    this.drawAimIndicator();
+  }
+  
+  onEnd() {
+    if (!this.isDragging) return;
+    this.isDragging = false;
+    this.clearAimIndicator();
+    
+    if (gameState === State.AIMING) {
+      this.launchPunch();
+    }
+  }
+  
+  drawAimIndicator() {
+    const dx = this.startPos.x - this.currentPos.x;
+    const dy = this.startPos.y - this.currentPos.y;
+    const dist = Math.min(Math.sqrt(dx * dx + dy * dy), 100);
+    const angle = Math.atan2(dy, dx);
+    
+    this.aimCanvas.style.display = 'block';
+    this.aimCanvas.style.left = (punch.position.x * 30 + window.innerWidth / 2 - 100) + 'px';
+    this.aimCanvas.style.top = (window.innerHeight / 2 - 100) + 'px';
+    
+    this.aimCtx.clearRect(0, 0, 200, 200);
+    
+    // Draw trajectory arc
+    this.aimCtx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    this.aimCtx.lineWidth = 3;
+    this.aimCtx.setLineDash([5, 5]);
+    this.aimCtx.beginPath();
+    
+    const power = dist / 100;
+    for (let t = 0; t < 1; t += 0.05) {
+      const px = 100 + Math.cos(angle) * power * t * 80;
+      const py = 100 - Math.sin(angle) * power * t * 80 + t * t * 40;
+      if (t === 0) this.aimCtx.moveTo(px, py);
+      else this.aimCtx.lineTo(px, py);
+    }
+    this.aimCtx.stroke();
+    
+    // Draw power indicator
+    this.aimCtx.fillStyle = `hsl(${(1 - power) * 120}, 80%, 50%)`;
+    this.aimCtx.beginPath();
+    this.aimCtx.arc(100, 100, 10 + power * 15, 0, Math.PI * 2);
+    this.aimCtx.fill();
+  }
+  
+  clearAimIndicator() {
+    this.aimCanvas.style.display = 'none';
+  }
+  
+  launchPunch() {
+    const dx = this.startPos.x - this.currentPos.x;
+    const dy = this.startPos.y - this.currentPos.y;
+    const dist = Math.min(Math.sqrt(dx * dx + dy * dy), 100);
+    const angle = Math.atan2(dy, dx);
+    
+    const power = dist / 100 * 15;
+    
+    // Detach from branch if swinging
+    if (punch.attachedBranch) {
+      punch.attachedBranch = null;
+    }
+    
+    punch.velocity.x = Math.cos(angle) * power;
+    punch.velocity.y = Math.sin(angle) * power;
+    punch.angularVelocity = (Math.random() - 0.5) * 5;
+    
+    punch.applySquash(0.7); // Squash on launch
+    punch.setExpression('happy');
+    
+    audio.playJump();
+    particles.emit(punch.position.x, punch.position.y, 0, 8, {
+      color: 0xCCCCCC,
+      speed: 2,
+      lifetime: 0.3
+    });
+    
+    gameState = State.FLYING;
+  }
+  
+  getAimVector() {
+    const dx = this.startPos.x - this.currentPos.x;
+    const dy = this.startPos.y - this.currentPos.y;
+    return { x: dx, y: dy };
+  }
+}
+
+// ============================================
+// CAMERA SHAKE
+// ============================================
+const cameraShake = {
+  intensity: 0,
+  decay: 0.9,
+  offset: new THREE.Vector3(),
+  
+  shake(amount) {
+    this.intensity = Math.max(this.intensity, amount);
+  },
+  
+  update() {
+    if (this.intensity > 0.01) {
+      this.offset.set(
+        (Math.random() - 0.5) * this.intensity,
+        (Math.random() - 0.5) * this.intensity,
+        0
+      );
+      this.intensity *= this.decay;
+    } else {
+      this.offset.set(0, 0, 0);
+      this.intensity = 0;
+    }
+  }
+};
+
+// ============================================
+// UI UPDATES
+// ============================================
+function updateUI() {
+  document.getElementById('score-display').textContent = `🍌 ${score}`;
+  document.getElementById('height-display').textContent = `📏 ${Math.floor(maxHeight)}m`;
+  
+  const comboEl = document.getElementById('combo-display');
+  if (combo > 1) {
+    comboEl.textContent = `x${combo}`;
+    comboEl.classList.add('active');
+  } else {
+    comboEl.classList.remove('active');
+  }
+}
+
+function showGameOver() {
+  document.getElementById('final-height').textContent = Math.floor(maxHeight);
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('game-over').classList.add('active');
+}
+
+function hideGameOver() {
+  document.getElementById('game-over').classList.remove('active');
+}
+
+// ============================================
+// GAME LOGIC
+// ============================================
+const GRAVITY = -20;
+const GRAB_RADIUS = 1.5;
+
+function updatePhysics(dt) {
+  if (gameState === State.FLYING) {
+    // Apply gravity
+    punch.velocity.y += GRAVITY * dt;
+    
+    // Update position
+    punch.position.add(punch.velocity.clone().multiplyScalar(dt));
+    
+    // Update rotation
+    punch.rotation += punch.angularVelocity * dt;
+    punch.angularVelocity *= 0.99;
+    
+    // Squash/stretch based on velocity
+    const speed = punch.velocity.length();
+    if (punch.velocity.y < 0) {
+      punch.applySquash(1 + speed * 0.01);
+      punch.setExpression('scared');
+    }
+    
+    // Check for branch grab
+    const nearBranch = branches.getNearestBranch(punch.position, GRAB_RADIUS);
+    if (nearBranch && !nearBranch.grabbed) {
+      grabBranch(nearBranch);
+    }
+    
+    // Check for fall
+    if (punch.position.y < camera.position.y - 15) {
+      gameOver();
+    }
+    
+  } else if (gameState === State.SWINGING) {
+    // Pendulum physics
+    const branch = punch.attachedBranch;
+    if (branch) {
+      const g = 15;
+      const dampening = 0.995;
+      
+      punch.swingVelocity += (-g / punch.ropeLength) * Math.sin(punch.swingAngle) * dt;
+      punch.swingVelocity *= dampening;
+      punch.swingAngle += punch.swingVelocity * dt;
+      
+      // Update position
+      punch.position.x = branch.x + Math.sin(punch.swingAngle) * punch.ropeLength;
+      punch.position.y = branch.y - Math.cos(punch.swingAngle) * punch.ropeLength;
+      
+      // Face direction of swing
+      punch.rotation = punch.swingAngle;
+    }
+  }
+}
+
+function grabBranch(branch) {
+  punch.attachedBranch = branch;
+  branch.grabbed = true;
+  
+  // Calculate swing angle from velocity
+  const dx = punch.position.x - branch.x;
+  const dy = punch.position.y - branch.y;
+  punch.ropeLength = Math.sqrt(dx * dx + dy * dy);
+  punch.swingAngle = Math.atan2(dx, -dy);
+  
+  // Convert velocity to swing velocity
+  const tangent = new THREE.Vector3(-Math.cos(punch.swingAngle), -Math.sin(punch.swingAngle), 0);
+  punch.swingVelocity = punch.velocity.dot(tangent) * 0.5 / punch.ropeLength;
+  
+  punch.velocity.set(0, 0, 0);
+  punch.applySquash(0.8);
+  punch.setExpression('happy');
+  
+  // Combo system
+  const now = Date.now();
+  if (now - lastGrabTime < 2000) {
+    combo++;
+    score += 10 * combo;
+  } else {
+    combo = 1;
+  }
+  lastGrabTime = now;
+  
+  audio.playGrab();
+  cameraShake.shake(0.3);
+  particles.emit(branch.x, branch.y, 0, 5, {
+    color: 0x228B22,
+    speed: 2,
+    lifetime: 0.4
+  });
+  
+  gameState = State.SWINGING;
+}
+
+function gameOver() {
+  gameState = State.GAME_OVER;
+  punch.setExpression('scared');
+  audio.playFall();
+  showGameOver();
+}
+
+function resetGame() {
+  score = 0;
+  maxHeight = 0;
+  combo = 0;
+  
+  punch.position.set(0, 5, 0);
+  punch.velocity.set(0, 0, 0);
+  punch.rotation = 0;
+  punch.attachedBranch = null;
+  punch.setExpression('normal');
+  
+  camera.position.set(0, 5, 15);
+  
+  branches.reset();
+  bananas.reset();
+  particles.reset();
+  
+  hideGameOver();
+  gameState = State.PLAYING;
+}
+
+// ============================================
+// MAIN GAME LOOP
+// ============================================
+let lastTime = 0;
+const TICK_RATE = 1000 / 60;
+let accumulator = 0;
+
+function gameLoop(currentTime) {
+  requestAnimationFrame(gameLoop);
+  
+  const deltaTime = currentTime - lastTime;
+  lastTime = currentTime;
+  
+  if (gameState === State.MENU) {
+    // Just render menu background
+    renderer.render(scene, camera);
+    return;
+  }
+  
+  accumulator += deltaTime;
+  
+  // Fixed timestep physics
+  while (accumulator >= TICK_RATE) {
+    updatePhysics(TICK_RATE / 1000);
+    accumulator -= TICK_RATE;
+  }
+  
+  // Update systems
+  const dt = deltaTime / 1000;
+  punch.update(dt);
+  branches.update(camera.position.y);
+  particles.update(dt);
+  
+  // Check banana collection
+  if (bananas.update(camera.position.y, punch.position)) {
+    score += 50;
+    audio.playCollect();
+    particles.emit(punch.position.x, punch.position.y, 0, 15, {
+      color: 0xFFD700,
+      speed: 5,
+      lifetime: 0.5
+    });
+  }
+  
+  // Combo decay
+  if (Date.now() - lastGrabTime > 2000) {
+    combo = 0;
+  }
+  
+  // Update max height
+  if (punch.position.y > maxHeight) {
+    maxHeight = punch.position.y;
+    score += Math.floor(punch.position.y - maxHeight);
+  }
+  
+  // Camera follow
+  const targetY = Math.max(punch.position.y, camera.position.y - 2);
+  camera.position.y += (targetY - camera.position.y) * 0.1;
+  
+  cameraShake.update();
+  camera.position.add(cameraShake.offset);
+  
+  // Update sky color based on height
+  const heightFactor = Math.min(maxHeight / 100, 1);
+  const skyColor = new THREE.Color().lerpColors(
+    new THREE.Color(0x87ceeb), // Light blue
+    new THREE.Color(0x1a1a3e), // Dark blue
+    heightFactor
+  );
+  scene.background = skyColor;
+  scene.fog.color = skyColor;
+  
+  updateUI();
+  renderer.render(scene, camera);
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+const punch = new Punch();
+const branches = new BranchManager();
+const bananas = new BananaManager();
+const particles = new ParticleSystem();
+const audio = new AudioManager();
+const input = new InputController();
+
+createBackground();
+branches.reset();
+
+// Event listeners
+document.getElementById('start-btn').addEventListener('click', async () => {
+  await audio.init();
+  document.getElementById('start-screen').classList.add('hidden');
+  resetGame();
+});
+
+document.getElementById('restart-btn').addEventListener('click', () => {
+  resetGame();
+});
+
+// Handle resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Start loop
+requestAnimationFrame(gameLoop);
+
+// play.fun Platform Integration (when SDK available)
+if (window.PlayFun) {
+  PlayFun.ready();
+}
+
+console.log('🐵 Fling Punch loaded! Swing your way home!');
+</script>
+</body>
+</html>

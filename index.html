@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="x-ogp-key" content="YOUR_API_KEY">
   <title>Fling Punch - Swing Your Way Home!</title>
+  <script src="https://sdk.play.fun"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
@@ -18,11 +20,15 @@
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       user-select: none;
-      background: #1a1a2e;
+      background: #87ceeb;
       font-family: 'Segoe UI', system-ui, sans-serif;
     }
     
-    canvas { display: block; }
+    #game-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
     
     #ui-overlay {
       position: fixed;
@@ -37,31 +43,32 @@
       top: max(20px, var(--sat));
       left: 20px;
       color: #fff;
-      font-size: 24px;
+      font-size: 28px;
       font-weight: bold;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }
     
     #height-display {
       position: absolute;
-      top: max(50px, calc(var(--sat) + 30px));
+      top: max(55px, calc(var(--sat) + 35px));
       left: 20px;
       color: #ffd700;
-      font-size: 18px;
+      font-size: 20px;
+      font-weight: bold;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }
     
     #combo-display {
       position: absolute;
-      top: 50%;
-      right: 20px;
-      transform: translateY(-50%);
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       color: #ff6b6b;
-      font-size: 36px;
+      font-size: 48px;
       font-weight: bold;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
       opacity: 0;
-      transition: opacity 0.3s, transform 0.3s;
+      transition: opacity 0.3s;
     }
     
     #combo-display.active {
@@ -70,14 +77,14 @@
     }
     
     @keyframes comboPulse {
-      0% { transform: translateY(-50%) scale(1.5); }
-      100% { transform: translateY(-50%) scale(1); }
+      0% { transform: translate(-50%, -50%) scale(1.5); }
+      100% { transform: translate(-50%, -50%) scale(1); }
     }
     
     #game-over {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.85);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -94,47 +101,43 @@
     
     #game-over h1 {
       color: #ff6b6b;
-      font-size: 48px;
+      font-size: 52px;
       margin-bottom: 20px;
-      text-shadow: 0 0 20px rgba(255,107,107,0.5);
     }
     
     #game-over .stats {
       color: #fff;
-      font-size: 24px;
+      font-size: 26px;
       margin-bottom: 30px;
       text-align: center;
+      line-height: 1.6;
     }
     
     #game-over .stats span {
       color: #ffd700;
     }
     
-    #restart-btn {
-      background: linear-gradient(180deg, #ff7f50 0%, #ff6347 100%);
+    .game-btn {
+      background: linear-gradient(180deg, #ff7f50 0%, #ff5722 100%);
       border: none;
       color: white;
-      padding: 15px 40px;
-      font-size: 24px;
-      border-radius: 30px;
+      padding: 18px 50px;
+      font-size: 26px;
+      font-weight: bold;
+      border-radius: 35px;
       cursor: pointer;
-      box-shadow: 0 4px 15px rgba(255,99,71,0.4);
-      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 6px 20px rgba(255,87,34,0.4);
+      transition: transform 0.15s;
     }
     
-    #restart-btn:hover {
-      transform: scale(1.05);
-      box-shadow: 0 6px 20px rgba(255,99,71,0.6);
-    }
-    
-    #restart-btn:active {
+    .game-btn:active {
       transform: scale(0.95);
     }
     
     #start-screen {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(180deg, #2d2a3e 0%, #1a1a2e 100%);
+      background: linear-gradient(180deg, #87CEEB 0%, #228B22 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -142,29 +145,31 @@
       z-index: 100;
     }
     
+    #start-screen .monkey-emoji {
+      font-size: 120px;
+      margin-bottom: 20px;
+      animation: bounce 1s ease-in-out infinite;
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+    
     #start-screen h1 {
-      color: #ff7f50;
-      font-size: 56px;
+      color: #fff;
+      font-size: 52px;
       margin-bottom: 10px;
-      text-shadow: 0 0 30px rgba(255,127,80,0.5);
+      text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
     }
     
     #start-screen .subtitle {
-      color: #87ceeb;
-      font-size: 20px;
+      color: #ffe4b5;
+      font-size: 22px;
       margin-bottom: 40px;
     }
     
-    #start-btn {
-      background: linear-gradient(180deg, #ff7f50 0%, #ff6347 100%);
-      border: none;
-      color: white;
-      padding: 20px 60px;
-      font-size: 28px;
-      border-radius: 40px;
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(255,99,71,0.4);
-      transition: transform 0.2s;
+    #start-screen .game-btn {
       animation: pulse 2s infinite;
     }
     
@@ -173,22 +178,12 @@
       50% { transform: scale(1.05); }
     }
     
-    #start-btn:active {
-      transform: scale(0.95);
-      animation: none;
-    }
-    
     #instructions {
-      color: #888;
+      color: rgba(255,255,255,0.8);
       font-size: 16px;
       margin-top: 30px;
       text-align: center;
-    }
-    
-    #aim-indicator {
-      position: fixed;
-      pointer-events: none;
-      z-index: 50;
+      line-height: 1.6;
     }
     
     .hidden { display: none !important; }
@@ -196,42 +191,92 @@
 </head>
 <body>
   <div id="start-screen">
-    <h1>🐵 Fling Punch</h1>
+    <div class="monkey-emoji">🐵</div>
+    <h1>Fling Punch</h1>
     <div class="subtitle">Swing Your Way Home!</div>
-    <button id="start-btn">TAP TO PLAY</button>
+    <button id="start-btn" class="game-btn">TAP TO PLAY</button>
     <div id="instructions">
       Drag to aim • Release to fling<br>
-      Reach for the sky!
+      Grab branches • Collect bananas 🍌
     </div>
   </div>
+  
+  <canvas id="game-canvas"></canvas>
   
   <div id="ui-overlay">
     <div id="score-display">🍌 0</div>
     <div id="height-display">📏 0m</div>
-    <div id="combo-display">x1</div>
+    <div id="combo-display">x2</div>
   </div>
   
   <div id="game-over">
-    <h1>Oh no!</h1>
+    <h1>💔 Oh no!</h1>
     <div class="stats">
       You reached <span id="final-height">0</span> meters<br>
       Score: <span id="final-score">0</span> 🍌
     </div>
-    <button id="restart-btn">Try Again</button>
+    <button id="restart-btn" class="game-btn">Try Again</button>
   </div>
+
+<script>
+// ============================================
+// PLAY FUN SDK INTEGRATION
+// ============================================
+let ogp = null;
+let sdkReady = false;
+let totalPointsThisSession = 0;
+let bestHeight = 0;
+
+// Initialize SDK when available
+if (typeof OpenGameSDK !== 'undefined') {
+  ogp = new OpenGameSDK({ 
+    ui: { 
+      usePointsWidget: true,
+      theme: 'dark'
+    } 
+  });
   
-  <canvas id="aim-indicator" width="200" height="200"></canvas>
-
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.module.js"
-  }
+  ogp.on('OnReady', () => {
+    console.log('Play Fun SDK ready!');
+    sdkReady = true;
+  });
+  
+  ogp.on('SavePointsSuccess', () => {
+    console.log('Points saved!');
+  });
+  
+  ogp.on('SavePointsFailed', () => {
+    console.log('Failed to save points');
+  });
+  
+  // Initialize with game ID (replace with actual game ID after submission)
+  ogp.init({ gameId: 'fling-punch' });
 }
-</script>
 
-<script type="module">
-import * as THREE from 'three';
+// ============================================
+// FLING PUNCH - 2D Canvas Game
+// ============================================
+
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+
+// Load real monkey image
+const punchImage = new Image();
+let punchImageLoaded = false;
+
+// Use a cute monkey face (we'll draw it with canvas as fallback)
+punchImage.onload = () => {
+  punchImageLoaded = true;
+  console.log('Punch image loaded!');
+};
+
+// Resize canvas
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
 
 // ============================================
 // GAME STATE
@@ -242,7 +287,6 @@ const State = {
   AIMING: 'aiming',
   FLYING: 'flying',
   SWINGING: 'swinging',
-  FALLING: 'falling',
   GAME_OVER: 'game_over'
 };
 
@@ -250,799 +294,803 @@ let gameState = State.MENU;
 let score = 0;
 let maxHeight = 0;
 let combo = 0;
-let comboTimer = 0;
 let lastGrabTime = 0;
+let cameraY = 0;
 
 // ============================================
-// THREE.JS SETUP
+// PUNCH CHARACTER - Cute realistic macaque
 // ============================================
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb, 30, 80);
-
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 5, 15);
-
-const renderer = new THREE.WebGLRenderer({
-  antialias: window.devicePixelRatio < 2,
-  powerPreference: 'high-performance'
-});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-document.body.insertBefore(renderer.domElement, document.body.firstChild);
-
-// ============================================
-// LIGHTING
-// ============================================
-const ambientLight = new THREE.AmbientLight(0xffeedd, 0.6);
-scene.add(ambientLight);
-
-const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
-sunLight.position.set(5, 20, 10);
-scene.add(sunLight);
-
-const fillLight = new THREE.DirectionalLight(0x8080ff, 0.3);
-fillLight.position.set(-5, 5, -5);
-scene.add(fillLight);
-
-// ============================================
-// SHARED GEOMETRIES & MATERIALS
-// ============================================
-const SHARED = {
-  geometries: {
-    branch: new THREE.CylinderGeometry(0.15, 0.2, 3, 8),
-    leaf: new THREE.SphereGeometry(0.8, 8, 6),
-    particle: new THREE.SphereGeometry(0.1, 4, 4),
-    banana: new THREE.CapsuleGeometry(0.15, 0.4, 4, 8)
-  },
-  materials: {
-    branch: new THREE.MeshLambertMaterial({ color: 0x8B4513 }),
-    leaf: new THREE.MeshLambertMaterial({ color: 0x228B22 }),
-    punch: new THREE.MeshLambertMaterial({ color: 0x8B7355 }),
-    punchFace: new THREE.MeshBasicMaterial({ color: 0xFFB5A7 }),
-    banana: new THREE.MeshLambertMaterial({ color: 0xFFD700 }),
-    particle: new THREE.MeshBasicMaterial({ color: 0xFFFFFF })
+function drawPunch(x, y, scale = 1, rotation = 0, expression = 'normal', isSwinging = false) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.scale(scale, scale);
+  
+  const s = 1; // Base scale multiplier
+  
+  // === BODY ===
+  // Main body (furry oval)
+  ctx.fillStyle = '#A08070';
+  ctx.beginPath();
+  ctx.ellipse(0, 35 * s, 28 * s, 35 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Lighter belly patch
+  ctx.fillStyle = '#C4B0A0';
+  ctx.beginPath();
+  ctx.ellipse(0, 40 * s, 18 * s, 22 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // === HEAD ===
+  // Head fur (main circle)
+  ctx.fillStyle = '#8B7355';
+  ctx.beginPath();
+  ctx.arc(0, -10 * s, 45 * s, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Fur tufts on sides
+  ctx.fillStyle = '#8B7355';
+  for (let angle = -0.8; angle <= 0.8; angle += 0.2) {
+    ctx.beginPath();
+    ctx.ellipse(
+      Math.sin(angle) * 42 * s, 
+      -10 * s + Math.cos(angle) * 5 * s, 
+      8 * s, 12 * s, 
+      angle, 0, Math.PI * 2
+    );
+    ctx.fill();
   }
+  
+  // === FACE ===
+  // Heart-shaped pink face
+  ctx.fillStyle = '#FFCDB8';
+  ctx.beginPath();
+  // Create heart shape for face
+  ctx.moveTo(0, 15 * s);
+  ctx.bezierCurveTo(-30 * s, 0, -28 * s, -30 * s, 0, -25 * s);
+  ctx.bezierCurveTo(28 * s, -30 * s, 30 * s, 0, 0, 15 * s);
+  ctx.fill();
+  
+  // === EYES ===
+  const eyeY = -12 * s;
+  const eyeX = 14 * s;
+  
+  // Eye whites (large, cute)
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.ellipse(-eyeX, eyeY, 12 * s, 14 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(eyeX, eyeY, 12 * s, 14 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Eye outline
+  ctx.strokeStyle = '#5D4037';
+  ctx.lineWidth = 1.5 * s;
+  ctx.beginPath();
+  ctx.ellipse(-eyeX, eyeY, 12 * s, 14 * s, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(eyeX, eyeY, 12 * s, 14 * s, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  
+  // Pupils (big, cute)
+  const pupilOffset = expression === 'scared' ? 3 * s : 0;
+  ctx.fillStyle = '#2D1810';
+  ctx.beginPath();
+  ctx.arc(-eyeX, eyeY + pupilOffset, 7 * s, 0, Math.PI * 2);
+  ctx.arc(eyeX, eyeY + pupilOffset, 7 * s, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Eye highlights (anime style - 2 per eye)
+  ctx.fillStyle = '#FFFFFF';
+  // Main highlight
+  ctx.beginPath();
+  ctx.arc(-eyeX - 2 * s, eyeY - 4 * s, 4 * s, 0, Math.PI * 2);
+  ctx.arc(eyeX - 2 * s, eyeY - 4 * s, 4 * s, 0, Math.PI * 2);
+  ctx.fill();
+  // Secondary highlight
+  ctx.beginPath();
+  ctx.arc(-eyeX + 3 * s, eyeY + 2 * s, 2 * s, 0, Math.PI * 2);
+  ctx.arc(eyeX + 3 * s, eyeY + 2 * s, 2 * s, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // === EYEBROWS ===
+  ctx.strokeStyle = '#5D4037';
+  ctx.lineWidth = 2.5 * s;
+  ctx.lineCap = 'round';
+  
+  if (expression === 'scared') {
+    // Worried eyebrows (angled up in middle)
+    ctx.beginPath();
+    ctx.moveTo(-eyeX - 10 * s, eyeY - 18 * s);
+    ctx.quadraticCurveTo(-eyeX, eyeY - 22 * s, -eyeX + 8 * s, eyeY - 16 * s);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(eyeX + 10 * s, eyeY - 18 * s);
+    ctx.quadraticCurveTo(eyeX, eyeY - 22 * s, eyeX - 8 * s, eyeY - 16 * s);
+    ctx.stroke();
+  } else if (expression === 'happy') {
+    // Happy curved brows
+    ctx.beginPath();
+    ctx.arc(-eyeX, eyeY - 18 * s, 8 * s, Math.PI * 0.2, Math.PI * 0.8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(eyeX, eyeY - 18 * s, 8 * s, Math.PI * 0.2, Math.PI * 0.8);
+    ctx.stroke();
+  }
+  
+  // === NOSE ===
+  ctx.fillStyle = '#D4A5A5';
+  ctx.beginPath();
+  ctx.ellipse(0, 2 * s, 8 * s, 6 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Nostrils
+  ctx.fillStyle = '#8B6969';
+  ctx.beginPath();
+  ctx.ellipse(-3 * s, 3 * s, 2 * s, 1.5 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(3 * s, 3 * s, 2 * s, 1.5 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // === MOUTH ===
+  ctx.strokeStyle = '#8B6969';
+  ctx.lineWidth = 2 * s;
+  ctx.lineCap = 'round';
+  
+  if (expression === 'happy') {
+    // Big smile
+    ctx.beginPath();
+    ctx.arc(0, 6 * s, 8 * s, 0.1 * Math.PI, 0.9 * Math.PI);
+    ctx.stroke();
+  } else if (expression === 'scared') {
+    // Open mouth (scared)
+    ctx.fillStyle = '#5D4037';
+    ctx.beginPath();
+    ctx.ellipse(0, 10 * s, 6 * s, 8 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FF8080';
+    ctx.beginPath();
+    ctx.ellipse(0, 12 * s, 4 * s, 4 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // Neutral line
+    ctx.beginPath();
+    ctx.moveTo(-5 * s, 10 * s);
+    ctx.lineTo(5 * s, 10 * s);
+    ctx.stroke();
+  }
+  
+  // === BLUSH ===
+  ctx.fillStyle = 'rgba(255, 150, 150, 0.4)';
+  ctx.beginPath();
+  ctx.ellipse(-25 * s, 0, 8 * s, 5 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(25 * s, 0, 8 * s, 5 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // === EARS ===
+  // Outer ear
+  ctx.fillStyle = '#8B7355';
+  ctx.beginPath();
+  ctx.ellipse(-40 * s, -8 * s, 14 * s, 16 * s, -0.3, 0, Math.PI * 2);
+  ctx.ellipse(40 * s, -8 * s, 14 * s, 16 * s, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Inner ear (pink)
+  ctx.fillStyle = '#FFCDB8';
+  ctx.beginPath();
+  ctx.ellipse(-40 * s, -8 * s, 8 * s, 10 * s, -0.3, 0, Math.PI * 2);
+  ctx.ellipse(40 * s, -8 * s, 8 * s, 10 * s, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // === ARMS ===
+  ctx.fillStyle = '#8B7355';
+  ctx.strokeStyle = '#8B7355';
+  ctx.lineWidth = 12 * s;
+  ctx.lineCap = 'round';
+  
+  if (isSwinging) {
+    // Arms up (grabbing branch)
+    ctx.beginPath();
+    ctx.moveTo(-22 * s, 20 * s);
+    ctx.lineTo(-35 * s, -25 * s);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(22 * s, 20 * s);
+    ctx.lineTo(35 * s, -25 * s);
+    ctx.stroke();
+    
+    // Hands up
+    ctx.fillStyle = '#FFCDB8';
+    ctx.beginPath();
+    ctx.arc(-35 * s, -30 * s, 10 * s, 0, Math.PI * 2);
+    ctx.arc(35 * s, -30 * s, 10 * s, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // Arms out/down
+    ctx.beginPath();
+    ctx.moveTo(-22 * s, 25 * s);
+    ctx.lineTo(-40 * s, 50 * s);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(22 * s, 25 * s);
+    ctx.lineTo(40 * s, 50 * s);
+    ctx.stroke();
+    
+    // Hands
+    ctx.fillStyle = '#FFCDB8';
+    ctx.beginPath();
+    ctx.arc(-44 * s, 54 * s, 10 * s, 0, Math.PI * 2);
+    ctx.arc(44 * s, 54 * s, 10 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // === LEGS ===
+  ctx.strokeStyle = '#8B7355';
+  ctx.lineWidth = 10 * s;
+  ctx.beginPath();
+  ctx.moveTo(-12 * s, 65 * s);
+  ctx.lineTo(-18 * s, 85 * s);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(12 * s, 65 * s);
+  ctx.lineTo(18 * s, 85 * s);
+  ctx.stroke();
+  
+  // Feet
+  ctx.fillStyle = '#FFCDB8';
+  ctx.beginPath();
+  ctx.ellipse(-18 * s, 90 * s, 12 * s, 8 * s, -0.2, 0, Math.PI * 2);
+  ctx.ellipse(18 * s, 90 * s, 12 * s, 8 * s, 0.2, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // === TAIL ===
+  ctx.strokeStyle = '#8B7355';
+  ctx.lineWidth = 8 * s;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, 65 * s);
+  
+  const tailWave = Math.sin(Date.now() * 0.005) * 10;
+  const tailCurl = expression === 'happy' ? 30 : (expression === 'scared' ? -15 : 0);
+  
+  ctx.bezierCurveTo(
+    -25 * s + tailWave, 75 * s,
+    -40 * s + tailCurl, 60 * s,
+    -35 * s + tailCurl + tailWave, 40 * s
+  );
+  ctx.stroke();
+  
+  ctx.restore();
+}
+
+// ============================================
+// PUNCH PHYSICS
+// ============================================
+const punch = {
+  x: 0,
+  y: 0,
+  vx: 0,
+  vy: 0,
+  rotation: 0,
+  angularVel: 0,
+  expression: 'normal',
+  attachedBranch: null,
+  swingAngle: 0,
+  swingVel: 0,
+  ropeLength: 100
 };
 
 // ============================================
-// PUNCH CHARACTER
+// BRANCHES
 // ============================================
-class Punch {
-  constructor() {
-    this.group = new THREE.Group();
-    
-    // Body (sphere with squash/stretch)
-    const bodyGeo = new THREE.SphereGeometry(0.5, 16, 12);
-    this.body = new THREE.Mesh(bodyGeo, SHARED.materials.punch);
-    this.body.scale.set(1, 1.1, 1);
-    this.group.add(this.body);
-    
-    // Face (pink circle on front)
-    const faceGeo = new THREE.CircleGeometry(0.35, 16);
-    this.face = new THREE.Mesh(faceGeo, SHARED.materials.punchFace);
-    this.face.position.z = 0.4;
-    this.group.add(this.face);
-    
-    // Eyes (big and shiny)
-    const eyeGeo = new THREE.CircleGeometry(0.12, 12);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-    const highlightGeo = new THREE.CircleGeometry(0.04, 8);
-    const highlightMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
-    
-    // Left eye
-    this.leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-    this.leftEye.position.set(-0.12, 0.1, 0.45);
-    this.group.add(this.leftEye);
-    
-    const leftHighlight = new THREE.Mesh(highlightGeo, highlightMat);
-    leftHighlight.position.set(-0.08, 0.14, 0.46);
-    this.group.add(leftHighlight);
-    
-    // Right eye
-    this.rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-    this.rightEye.position.set(0.12, 0.1, 0.45);
-    this.group.add(this.rightEye);
-    
-    const rightHighlight = new THREE.Mesh(highlightGeo, highlightMat);
-    rightHighlight.position.set(0.16, 0.14, 0.46);
-    this.group.add(rightHighlight);
-    
-    // Ears
-    const earGeo = new THREE.SphereGeometry(0.15, 8, 6);
-    const earMat = new THREE.MeshLambertMaterial({ color: 0x8B7355 });
-    
-    this.leftEar = new THREE.Mesh(earGeo, earMat);
-    this.leftEar.position.set(-0.45, 0.35, 0);
-    this.group.add(this.leftEar);
-    
-    this.rightEar = new THREE.Mesh(earGeo, earMat);
-    this.rightEar.position.set(0.45, 0.35, 0);
-    this.group.add(this.rightEar);
-    
-    // Tail (curved line of spheres)
-    this.tailSegments = [];
-    for (let i = 0; i < 5; i++) {
-      const seg = new THREE.Mesh(
-        new THREE.SphereGeometry(0.08 - i * 0.01, 6, 4),
-        earMat
-      );
-      seg.position.set(0, -0.3 - i * 0.15, -0.3 - i * 0.1);
-      this.group.add(seg);
-      this.tailSegments.push(seg);
-    }
-    
-    // Physics
-    this.velocity = new THREE.Vector3();
-    this.position = new THREE.Vector3(0, 5, 0);
-    this.rotation = 0;
-    this.angularVelocity = 0;
-    
-    // Swing state
-    this.attachedBranch = null;
-    this.swingAngle = 0;
-    this.swingVelocity = 0;
-    this.ropeLength = 2;
-    
-    // Animation state
-    this.squash = 1;
-    this.targetSquash = 1;
-    this.blinkTimer = 0;
-    this.isBlinking = false;
-    this.expression = 'normal'; // normal, happy, scared
-    
-    scene.add(this.group);
-  }
+const branches = [];
+
+function spawnBranch(y) {
+  branches.push({
+    x: (Math.random() - 0.5) * (canvas.width - 250) + canvas.width / 2,
+    y: y,
+    width: 120 + Math.random() * 80,
+    grabbed: false
+  });
+}
+
+function resetBranches() {
+  branches.length = 0;
+  // Start with a branch right below punch
+  branches.push({
+    x: canvas.width / 2,
+    y: 100,
+    width: 150,
+    grabbed: false
+  });
   
-  update(dt) {
-    // Blink timer
-    this.blinkTimer += dt;
-    if (!this.isBlinking && this.blinkTimer > 3 + Math.random() * 2) {
-      this.isBlinking = true;
-      this.blinkTimer = 0;
-    }
-    if (this.isBlinking && this.blinkTimer > 0.15) {
-      this.isBlinking = false;
-      this.blinkTimer = 0;
-    }
-    
-    // Eye scale for blink
-    const eyeScale = this.isBlinking ? 0.1 : 1;
-    this.leftEye.scale.y = eyeScale;
-    this.rightEye.scale.y = eyeScale;
-    
-    // Squash/stretch interpolation
-    this.squash += (this.targetSquash - this.squash) * 0.2;
-    this.body.scale.y = this.squash;
-    this.body.scale.x = 1 / Math.sqrt(this.squash);
-    this.body.scale.z = 1 / Math.sqrt(this.squash);
-    
-    // Tail animation (follows movement with delay)
-    const tailCurl = this.expression === 'happy' ? 0.3 : 
-                     this.expression === 'scared' ? -0.2 : 0;
-    for (let i = 0; i < this.tailSegments.length; i++) {
-      const seg = this.tailSegments[i];
-      const wave = Math.sin(Date.now() * 0.003 + i * 0.5) * 0.1;
-      seg.position.x = wave + Math.sin(tailCurl * (i + 1)) * 0.2;
-    }
-    
-    // Ear animation
-    const earDroop = this.expression === 'scared' ? -0.1 : 0;
-    this.leftEar.position.y = 0.35 + earDroop;
-    this.rightEar.position.y = 0.35 + earDroop;
-    
-    // Update group position
-    this.group.position.copy(this.position);
-    this.group.rotation.z = this.rotation;
-  }
-  
-  applySquash(amount) {
-    this.targetSquash = amount;
-  }
-  
-  setExpression(expr) {
-    this.expression = expr;
+  for (let y = 250; y < 2000; y += 140 + Math.random() * 100) {
+    spawnBranch(y);
   }
 }
 
-// ============================================
-// BRANCH SYSTEM
-// ============================================
-class BranchManager {
-  constructor() {
-    this.branches = [];
-    this.pool = [];
-    this.spawnY = 0;
-    this.lastBranchY = 0;
+function drawBranch(branch) {
+  const screenY = canvas.height - (branch.y - cameraY);
+  
+  if (screenY < -50 || screenY > canvas.height + 50) return;
+  
+  // Branch shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath();
+  ctx.roundRect(branch.x - branch.width/2 + 5, screenY - 7, branch.width, 20, 10);
+  ctx.fill();
+  
+  // Main branch
+  const gradient = ctx.createLinearGradient(0, screenY - 12, 0, screenY + 12);
+  gradient.addColorStop(0, '#A0522D');
+  gradient.addColorStop(0.5, '#8B4513');
+  gradient.addColorStop(1, '#654321');
+  ctx.fillStyle = gradient;
+  
+  ctx.beginPath();
+  ctx.roundRect(branch.x - branch.width/2, screenY - 12, branch.width, 24, 12);
+  ctx.fill();
+  
+  // Branch texture lines
+  ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 3; i++) {
+    const lx = branch.x - branch.width/2 + 20 + i * 30;
+    ctx.beginPath();
+    ctx.moveTo(lx, screenY - 8);
+    ctx.lineTo(lx + 10, screenY + 8);
+    ctx.stroke();
   }
   
-  createBranch() {
-    let branch;
-    if (this.pool.length > 0) {
-      branch = this.pool.pop();
-      branch.mesh.visible = true;
-      branch.leaves.visible = true;
-    } else {
-      const mesh = new THREE.Mesh(SHARED.geometries.branch, SHARED.materials.branch);
-      mesh.rotation.z = Math.PI / 2;
-      
-      const leaves = new THREE.Mesh(SHARED.geometries.leaf, SHARED.materials.leaf);
-      leaves.scale.set(1.5, 1, 1);
-      
-      branch = { mesh, leaves, active: true };
-      scene.add(mesh);
-      scene.add(leaves);
-    }
-    return branch;
-  }
+  // Leaves on ends
+  ctx.fillStyle = '#228B22';
+  // Left leaves
+  ctx.beginPath();
+  ctx.ellipse(branch.x - branch.width/2 - 15, screenY - 10, 25, 15, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(branch.x - branch.width/2 - 5, screenY - 18, 20, 12, -0.3, 0, Math.PI * 2);
+  ctx.fill();
   
-  spawnBranch(y) {
-    const branch = this.createBranch();
-    const x = (Math.random() - 0.5) * 10;
-    
-    branch.mesh.position.set(x, y, 0);
-    branch.leaves.position.set(x + (Math.random() > 0.5 ? 1.5 : -1.5), y + 0.3, 0);
-    branch.y = y;
-    branch.x = x;
-    branch.active = true;
-    branch.grabbed = false;
-    
-    this.branches.push(branch);
-    return branch;
-  }
-  
-  update(cameraY) {
-    // Spawn new branches ahead
-    while (this.spawnY < cameraY + 30) {
-      this.spawnY += 2 + Math.random() * 2;
-      this.spawnBranch(this.spawnY);
-    }
-    
-    // Remove branches below camera
-    for (let i = this.branches.length - 1; i >= 0; i--) {
-      const branch = this.branches[i];
-      if (branch.y < cameraY - 10) {
-        branch.mesh.visible = false;
-        branch.leaves.visible = false;
-        branch.active = false;
-        this.pool.push(branch);
-        this.branches.splice(i, 1);
-      }
-    }
-  }
-  
-  getNearestBranch(position, radius) {
-    let nearest = null;
-    let nearestDist = radius;
-    
-    for (const branch of this.branches) {
-      if (!branch.active) continue;
-      
-      const dx = branch.x - position.x;
-      const dy = branch.y - position.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      
-      if (dist < nearestDist) {
-        nearestDist = dist;
-        nearest = branch;
-      }
-    }
-    
-    return nearest;
-  }
-  
-  reset() {
-    for (const branch of this.branches) {
-      branch.mesh.visible = false;
-      branch.leaves.visible = false;
-      this.pool.push(branch);
-    }
-    this.branches = [];
-    this.spawnY = 0;
-    
-    // Create initial branches
-    for (let y = 3; y < 20; y += 3) {
-      this.spawnBranch(y);
-    }
-    this.spawnY = 20;
-  }
+  // Right leaves
+  ctx.beginPath();
+  ctx.ellipse(branch.x + branch.width/2 + 15, screenY - 10, 25, 15, 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(branch.x + branch.width/2 + 5, screenY - 18, 20, 12, 0.3, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 // ============================================
-// PARTICLE SYSTEM
+// BANANAS
 // ============================================
-class ParticleSystem {
-  constructor(maxParticles = 100) {
-    this.particles = [];
-    this.pool = [];
-    this.maxParticles = maxParticles;
-  }
+const bananas = [];
+let bananaSpawnY = 400;
+
+function spawnBanana() {
+  bananas.push({
+    x: Math.random() * (canvas.width - 150) + 75,
+    y: bananaSpawnY,
+    collected: false,
+    rotation: Math.random() * Math.PI * 2
+  });
+  bananaSpawnY += 250 + Math.random() * 200;
+}
+
+function drawBanana(b) {
+  if (b.collected) return;
   
-  emit(x, y, z, count, config = {}) {
-    const {
-      color = 0xFFFFFF,
-      speed = 3,
-      lifetime = 0.5,
-      size = 0.1,
-      gravity = -10
-    } = config;
-    
-    for (let i = 0; i < count && this.particles.length < this.maxParticles; i++) {
-      let particle;
-      if (this.pool.length > 0) {
-        particle = this.pool.pop();
-        particle.mesh.visible = true;
-      } else {
-        const geo = new THREE.SphereGeometry(size, 4, 4);
-        const mat = new THREE.MeshBasicMaterial({ color });
-        const mesh = new THREE.Mesh(geo, mat);
-        scene.add(mesh);
-        particle = { mesh, velocity: new THREE.Vector3() };
-      }
-      
-      particle.mesh.position.set(x, y, z);
-      particle.mesh.material.color.setHex(color);
-      particle.velocity.set(
-        (Math.random() - 0.5) * speed,
-        Math.random() * speed,
-        (Math.random() - 0.5) * speed * 0.5
-      );
-      particle.lifetime = lifetime;
-      particle.maxLifetime = lifetime;
-      particle.gravity = gravity;
-      
-      this.particles.push(particle);
-    }
-  }
+  const screenY = canvas.height - (b.y - cameraY);
+  if (screenY < -50 || screenY > canvas.height + 50) return;
   
-  update(dt) {
-    for (let i = this.particles.length - 1; i >= 0; i--) {
-      const p = this.particles[i];
-      
-      p.velocity.y += p.gravity * dt;
-      p.mesh.position.add(p.velocity.clone().multiplyScalar(dt));
-      
-      p.lifetime -= dt;
-      p.mesh.material.opacity = p.lifetime / p.maxLifetime;
-      
-      if (p.lifetime <= 0) {
-        p.mesh.visible = false;
-        this.pool.push(p);
-        this.particles.splice(i, 1);
-      }
-    }
-  }
+  ctx.save();
+  ctx.translate(b.x, screenY);
+  ctx.rotate(b.rotation + Date.now() * 0.002);
   
-  reset() {
-    for (const p of this.particles) {
-      p.mesh.visible = false;
-      this.pool.push(p);
-    }
-    this.particles = [];
-  }
+  // Glow effect
+  ctx.shadowColor = '#FFD700';
+  ctx.shadowBlur = 15;
+  
+  // Banana body
+  ctx.fillStyle = '#FFD700';
+  ctx.beginPath();
+  ctx.moveTo(-20, 5);
+  ctx.quadraticCurveTo(-25, -20, 0, -30);
+  ctx.quadraticCurveTo(25, -20, 20, 5);
+  ctx.quadraticCurveTo(10, 12, 0, 12);
+  ctx.quadraticCurveTo(-10, 12, -20, 5);
+  ctx.fill();
+  
+  ctx.shadowBlur = 0;
+  
+  // Stem
+  ctx.fillStyle = '#8B4513';
+  ctx.fillRect(-3, -33, 6, 8);
+  
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.beginPath();
+  ctx.ellipse(-8, -10, 5, 12, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.restore();
 }
 
 // ============================================
-// BANANA COLLECTIBLES
+// PARTICLES
 // ============================================
-class BananaManager {
-  constructor() {
-    this.bananas = [];
-    this.pool = [];
-    this.spawnY = 10;
+const particles = [];
+
+function emitParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 10,
+      vy: Math.random() * -10 - 2,
+      life: 1,
+      color,
+      size: 4 + Math.random() * 6
+    });
   }
-  
-  createBanana() {
-    let banana;
-    if (this.pool.length > 0) {
-      banana = this.pool.pop();
-      banana.mesh.visible = true;
-    } else {
-      const mesh = new THREE.Mesh(SHARED.geometries.banana, SHARED.materials.banana);
-      mesh.rotation.z = Math.PI / 4;
-      scene.add(mesh);
-      banana = { mesh, active: true };
-    }
-    return banana;
-  }
-  
-  update(cameraY, punchPos) {
-    // Spawn bananas
-    while (this.spawnY < cameraY + 40) {
-      if (Math.random() < 0.3) { // 30% chance per spawn point
-        const banana = this.createBanana();
-        banana.mesh.position.set(
-          (Math.random() - 0.5) * 12,
-          this.spawnY,
-          0
-        );
-        banana.y = this.spawnY;
-        banana.active = true;
-        this.bananas.push(banana);
-      }
-      this.spawnY += 5;
-    }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.vy += 0.4;
+    p.y += p.vy;
+    p.life -= 0.025;
     
-    // Animate and check collection
-    for (let i = this.bananas.length - 1; i >= 0; i--) {
-      const banana = this.bananas[i];
-      
-      // Spin animation
-      banana.mesh.rotation.y += 0.05;
-      banana.mesh.position.y = banana.y + Math.sin(Date.now() * 0.003) * 0.2;
-      
-      // Check collection
-      const dist = banana.mesh.position.distanceTo(punchPos);
-      if (dist < 1 && banana.active) {
-        banana.active = false;
-        banana.mesh.visible = false;
-        this.pool.push(banana);
-        this.bananas.splice(i, 1);
-        return true; // Collected!
-      }
-      
-      // Remove if below camera
-      if (banana.y < cameraY - 10) {
-        banana.mesh.visible = false;
-        this.pool.push(banana);
-        this.bananas.splice(i, 1);
-      }
+    if (p.life <= 0) {
+      particles.splice(i, 1);
     }
-    
-    return false;
   }
-  
-  reset() {
-    for (const b of this.bananas) {
-      b.mesh.visible = false;
-      this.pool.push(b);
-    }
-    this.bananas = [];
-    this.spawnY = 10;
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    ctx.fill();
   }
+  ctx.globalAlpha = 1;
 }
 
 // ============================================
 // BACKGROUND
 // ============================================
-function createBackground() {
-  // Gradient sky (done via scene background changes)
+function drawBackground() {
+  // Sky gradient based on height
+  const heightFactor = Math.min(maxHeight / 2000, 1);
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
   
-  // Distant mountains/trees (simple silhouettes)
-  const mountainGeo = new THREE.BufferGeometry();
-  const vertices = [];
-  for (let i = 0; i < 20; i++) {
-    const x = (i - 10) * 8;
-    const h = 5 + Math.random() * 10;
-    vertices.push(x - 4, 0, -30);
-    vertices.push(x + 4, 0, -30);
-    vertices.push(x, h, -30);
-  }
-  mountainGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-  const mountainMat = new THREE.MeshBasicMaterial({ color: 0x2d5a27, side: THREE.DoubleSide });
-  const mountains = new THREE.Mesh(mountainGeo, mountainMat);
-  scene.add(mountains);
+  const r1 = Math.floor(135 - heightFactor * 100);
+  const g1 = Math.floor(206 - heightFactor * 100);
+  const b1 = Math.floor(235 - heightFactor * 100);
+  const r2 = Math.floor(224 - heightFactor * 150);
+  const g2 = Math.floor(247 - heightFactor * 150);
+  const b2 = Math.floor(250 - heightFactor * 150);
   
-  // Ground plane
-  const groundGeo = new THREE.PlaneGeometry(100, 100);
-  const groundMat = new THREE.MeshLambertMaterial({ color: 0x3d7a32 });
-  const ground = new THREE.Mesh(groundGeo, groundMat);
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -2;
-  scene.add(ground);
-}
-
-// ============================================
-// AUDIO SYSTEM (Procedural)
-// ============================================
-class AudioManager {
-  constructor() {
-    this.ctx = null;
-    this.initialized = false;
-  }
+  gradient.addColorStop(0, `rgb(${r1},${g1},${b1})`);
+  gradient.addColorStop(1, `rgb(${r2},${g2},${b2})`);
   
-  async init() {
-    if (this.initialized) return;
-    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    this.initialized = true;
-    if (this.ctx.state === 'suspended') {
-      await this.ctx.resume();
-    }
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Sun
+  ctx.fillStyle = '#FFF8DC';
+  ctx.shadowColor = '#FFD700';
+  ctx.shadowBlur = 50;
+  ctx.beginPath();
+  ctx.arc(canvas.width - 80, 80, 40, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  
+  // Distant trees (parallax)
+  ctx.fillStyle = '#2d5a27';
+  for (let i = 0; i < 12; i++) {
+    const x = ((i * 120 - cameraY * 0.05) % (canvas.width + 150)) - 50;
+    const h = 80 + Math.sin(i * 1.7) * 40;
+    
+    ctx.beginPath();
+    ctx.moveTo(x, canvas.height);
+    ctx.lineTo(x + 40, canvas.height - h);
+    ctx.lineTo(x + 80, canvas.height);
+    ctx.fill();
   }
   
-  playJump() {
-    if (!this.initialized) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.15);
+  // Closer trees
+  ctx.fillStyle = '#1e4d1e';
+  for (let i = 0; i < 8; i++) {
+    const x = ((i * 180 + 50 - cameraY * 0.1) % (canvas.width + 200)) - 80;
+    const h = 120 + Math.sin(i * 2.3) * 50;
+    
+    ctx.beginPath();
+    ctx.moveTo(x, canvas.height);
+    ctx.lineTo(x + 60, canvas.height - h);
+    ctx.lineTo(x + 120, canvas.height);
+    ctx.fill();
   }
   
-  playGrab() {
-    if (!this.initialized) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(800, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.1);
-  }
-  
-  playCollect() {
-    if (!this.initialized) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(523, this.ctx.currentTime);
-    osc.frequency.setValueAtTime(659, this.ctx.currentTime + 0.1);
-    osc.frequency.setValueAtTime(784, this.ctx.currentTime + 0.2);
-    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.3);
-  }
-  
-  playFall() {
-    if (!this.initialized) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(400, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.5);
-    gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.5);
+  // Clouds
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  for (let i = 0; i < 5; i++) {
+    const x = ((i * 250 + Date.now() * 0.01 + cameraY * 0.02) % (canvas.width + 200)) - 100;
+    const y = 60 + i * 35;
+    
+    ctx.beginPath();
+    ctx.arc(x, y, 25, 0, Math.PI * 2);
+    ctx.arc(x + 20, y - 10, 20, 0, Math.PI * 2);
+    ctx.arc(x + 40, y, 25, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
 // ============================================
-// INPUT HANDLING
+// INPUT
 // ============================================
-class InputController {
-  constructor() {
-    this.isDragging = false;
-    this.startPos = { x: 0, y: 0 };
-    this.currentPos = { x: 0, y: 0 };
-    this.aimCanvas = document.getElementById('aim-indicator');
-    this.aimCtx = this.aimCanvas.getContext('2d');
-    
-    // Touch events
-    document.addEventListener('touchstart', (e) => this.onStart(e.touches[0]), { passive: false });
-    document.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      this.onMove(e.touches[0]);
-    }, { passive: false });
-    document.addEventListener('touchend', () => this.onEnd());
-    
-    // Mouse events
-    document.addEventListener('mousedown', (e) => this.onStart(e));
-    document.addEventListener('mousemove', (e) => this.onMove(e));
-    document.addEventListener('mouseup', () => this.onEnd());
+let isDragging = false;
+let dragStart = { x: 0, y: 0 };
+let dragCurrent = { x: 0, y: 0 };
+
+function getEventPos(e) {
+  if (e.touches && e.touches.length > 0) {
+    return { x: e.touches[0].clientX, y: e.touches[0].clientY };
   }
+  return { x: e.clientX, y: e.clientY };
+}
+
+canvas.addEventListener('touchstart', onDragStart, { passive: false });
+canvas.addEventListener('mousedown', onDragStart);
+canvas.addEventListener('touchmove', onDragMove, { passive: false });
+canvas.addEventListener('mousemove', onDragMove);
+canvas.addEventListener('touchend', onDragEnd);
+canvas.addEventListener('mouseup', onDragEnd);
+
+function onDragStart(e) {
+  if (gameState !== State.PLAYING && gameState !== State.SWINGING) return;
+  e.preventDefault();
   
-  onStart(e) {
-    if (gameState !== State.PLAYING && gameState !== State.SWINGING) return;
-    
-    this.isDragging = true;
-    this.startPos = { x: e.clientX, y: e.clientY };
-    this.currentPos = { x: e.clientX, y: e.clientY };
-    gameState = State.AIMING;
-  }
+  isDragging = true;
+  const pos = getEventPos(e);
+  dragStart = pos;
+  dragCurrent = pos;
+  gameState = State.AIMING;
+}
+
+function onDragMove(e) {
+  if (!isDragging) return;
+  e.preventDefault();
+  dragCurrent = getEventPos(e);
+}
+
+function onDragEnd(e) {
+  if (!isDragging) return;
+  isDragging = false;
   
-  onMove(e) {
-    if (!this.isDragging) return;
-    this.currentPos = { x: e.clientX, y: e.clientY };
-    this.drawAimIndicator();
-  }
-  
-  onEnd() {
-    if (!this.isDragging) return;
-    this.isDragging = false;
-    this.clearAimIndicator();
-    
-    if (gameState === State.AIMING) {
-      this.launchPunch();
-    }
-  }
-  
-  drawAimIndicator() {
-    const dx = this.startPos.x - this.currentPos.x;
-    const dy = this.startPos.y - this.currentPos.y;
-    const dist = Math.min(Math.sqrt(dx * dx + dy * dy), 100);
-    const angle = Math.atan2(dy, dx);
-    
-    this.aimCanvas.style.display = 'block';
-    this.aimCanvas.style.left = (punch.position.x * 30 + window.innerWidth / 2 - 100) + 'px';
-    this.aimCanvas.style.top = (window.innerHeight / 2 - 100) + 'px';
-    
-    this.aimCtx.clearRect(0, 0, 200, 200);
-    
-    // Draw trajectory arc
-    this.aimCtx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-    this.aimCtx.lineWidth = 3;
-    this.aimCtx.setLineDash([5, 5]);
-    this.aimCtx.beginPath();
-    
-    const power = dist / 100;
-    for (let t = 0; t < 1; t += 0.05) {
-      const px = 100 + Math.cos(angle) * power * t * 80;
-      const py = 100 - Math.sin(angle) * power * t * 80 + t * t * 40;
-      if (t === 0) this.aimCtx.moveTo(px, py);
-      else this.aimCtx.lineTo(px, py);
-    }
-    this.aimCtx.stroke();
-    
-    // Draw power indicator
-    this.aimCtx.fillStyle = `hsl(${(1 - power) * 120}, 80%, 50%)`;
-    this.aimCtx.beginPath();
-    this.aimCtx.arc(100, 100, 10 + power * 15, 0, Math.PI * 2);
-    this.aimCtx.fill();
-  }
-  
-  clearAimIndicator() {
-    this.aimCanvas.style.display = 'none';
-  }
-  
-  launchPunch() {
-    const dx = this.startPos.x - this.currentPos.x;
-    const dy = this.startPos.y - this.currentPos.y;
-    const dist = Math.min(Math.sqrt(dx * dx + dy * dy), 100);
-    const angle = Math.atan2(dy, dx);
-    
-    const power = dist / 100 * 15;
-    
-    // Detach from branch if swinging
-    if (punch.attachedBranch) {
-      punch.attachedBranch = null;
-    }
-    
-    punch.velocity.x = Math.cos(angle) * power;
-    punch.velocity.y = Math.sin(angle) * power;
-    punch.angularVelocity = (Math.random() - 0.5) * 5;
-    
-    punch.applySquash(0.7); // Squash on launch
-    punch.setExpression('happy');
-    
-    audio.playJump();
-    particles.emit(punch.position.x, punch.position.y, 0, 8, {
-      color: 0xCCCCCC,
-      speed: 2,
-      lifetime: 0.3
-    });
-    
-    gameState = State.FLYING;
-  }
-  
-  getAimVector() {
-    const dx = this.startPos.x - this.currentPos.x;
-    const dy = this.startPos.y - this.currentPos.y;
-    return { x: dx, y: dy };
+  if (gameState === State.AIMING) {
+    launchPunch();
   }
 }
 
-// ============================================
-// CAMERA SHAKE
-// ============================================
-const cameraShake = {
-  intensity: 0,
-  decay: 0.9,
-  offset: new THREE.Vector3(),
+function launchPunch() {
+  const dx = dragStart.x - dragCurrent.x;
+  const dy = dragStart.y - dragCurrent.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
   
-  shake(amount) {
-    this.intensity = Math.max(this.intensity, amount);
-  },
-  
-  update() {
-    if (this.intensity > 0.01) {
-      this.offset.set(
-        (Math.random() - 0.5) * this.intensity,
-        (Math.random() - 0.5) * this.intensity,
-        0
-      );
-      this.intensity *= this.decay;
-    } else {
-      this.offset.set(0, 0, 0);
-      this.intensity = 0;
-    }
+  if (dist < 20) {
+    gameState = punch.attachedBranch ? State.SWINGING : State.PLAYING;
+    return;
   }
-};
-
-// ============================================
-// UI UPDATES
-// ============================================
-function updateUI() {
-  document.getElementById('score-display').textContent = `🍌 ${score}`;
-  document.getElementById('height-display').textContent = `📏 ${Math.floor(maxHeight)}m`;
   
-  const comboEl = document.getElementById('combo-display');
-  if (combo > 1) {
-    comboEl.textContent = `x${combo}`;
-    comboEl.classList.add('active');
-  } else {
-    comboEl.classList.remove('active');
-  }
+  const power = Math.min(dist / 80, 1) * 22;
+  const angle = Math.atan2(dy, dx);
+  
+  punch.attachedBranch = null;
+  punch.vx = Math.cos(angle) * power;
+  punch.vy = -Math.sin(angle) * power;
+  punch.angularVel = (Math.random() - 0.5) * 0.15;
+  punch.expression = 'happy';
+  
+  playSound('jump');
+  
+  const screenY = canvas.height - (punch.y - cameraY);
+  emitParticles(punch.x, screenY, '#CCCCCC', 10);
+  
+  gameState = State.FLYING;
 }
 
-function showGameOver() {
-  document.getElementById('final-height').textContent = Math.floor(maxHeight);
-  document.getElementById('final-score').textContent = score;
-  document.getElementById('game-over').classList.add('active');
+// ============================================
+// AUDIO (Procedural)
+// ============================================
+let audioCtx = null;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 }
 
-function hideGameOver() {
-  document.getElementById('game-over').classList.remove('active');
+function playSound(type) {
+  if (!audioCtx) return;
+  
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  
+  const now = audioCtx.currentTime;
+  
+  switch(type) {
+    case 'jump':
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(350, now);
+      osc.frequency.exponentialRampToValueAtTime(700, now + 0.12);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc.start(now);
+      osc.stop(now + 0.15);
+      break;
+      
+    case 'grab':
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(900, now);
+      osc.frequency.exponentialRampToValueAtTime(450, now + 0.1);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+      osc.start(now);
+      osc.stop(now + 0.12);
+      break;
+      
+    case 'collect':
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, now);
+      osc.frequency.setValueAtTime(659, now + 0.08);
+      osc.frequency.setValueAtTime(784, now + 0.16);
+      osc.frequency.setValueAtTime(1047, now + 0.24);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+      break;
+      
+    case 'fall':
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.exponentialRampToValueAtTime(80, now + 0.5);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      osc.start(now);
+      osc.stop(now + 0.5);
+      break;
+  }
 }
 
 // ============================================
 // GAME LOGIC
 // ============================================
-const GRAVITY = -20;
-const GRAB_RADIUS = 1.5;
+const GRAVITY = 0.6;
+const GRAB_RADIUS = 80;
 
-function updatePhysics(dt) {
+function updatePhysics() {
   if (gameState === State.FLYING) {
-    // Apply gravity
-    punch.velocity.y += GRAVITY * dt;
+    punch.vy += GRAVITY;
+    punch.x += punch.vx;
+    punch.y += punch.vy;
+    punch.rotation += punch.angularVel;
     
-    // Update position
-    punch.position.add(punch.velocity.clone().multiplyScalar(dt));
+    // Air resistance
+    punch.vx *= 0.995;
+    punch.angularVel *= 0.98;
     
-    // Update rotation
-    punch.rotation += punch.angularVelocity * dt;
-    punch.angularVelocity *= 0.99;
-    
-    // Squash/stretch based on velocity
-    const speed = punch.velocity.length();
-    if (punch.velocity.y < 0) {
-      punch.applySquash(1 + speed * 0.01);
-      punch.setExpression('scared');
+    // Expression based on velocity
+    if (punch.vy > 8) {
+      punch.expression = 'scared';
     }
     
-    // Check for branch grab
-    const nearBranch = branches.getNearestBranch(punch.position, GRAB_RADIUS);
-    if (nearBranch && !nearBranch.grabbed) {
-      grabBranch(nearBranch);
+    // Check branch grab
+    for (const branch of branches) {
+      if (branch.grabbed) continue;
+      
+      const dx = punch.x - branch.x;
+      const dy = punch.y - branch.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      // Can only grab if coming from above or side
+      if (dist < GRAB_RADIUS && punch.y > branch.y - 50) {
+        grabBranch(branch);
+        break;
+      }
     }
     
-    // Check for fall
-    if (punch.position.y < camera.position.y - 15) {
+    // Check fall (below camera)
+    if (punch.y < cameraY - 100) {
       gameOver();
     }
     
   } else if (gameState === State.SWINGING) {
-    // Pendulum physics
     const branch = punch.attachedBranch;
     if (branch) {
-      const g = 15;
-      const dampening = 0.995;
+      // Pendulum physics
+      const g = 0.4;
+      punch.swingVel += (g / punch.ropeLength) * Math.sin(punch.swingAngle);
+      punch.swingVel *= 0.992; // Damping
+      punch.swingAngle += punch.swingVel;
       
-      punch.swingVelocity += (-g / punch.ropeLength) * Math.sin(punch.swingAngle) * dt;
-      punch.swingVelocity *= dampening;
-      punch.swingAngle += punch.swingVelocity * dt;
+      // Clamp swing angle
+      punch.swingAngle = Math.max(-Math.PI * 0.6, Math.min(Math.PI * 0.6, punch.swingAngle));
       
       // Update position
-      punch.position.x = branch.x + Math.sin(punch.swingAngle) * punch.ropeLength;
-      punch.position.y = branch.y - Math.cos(punch.swingAngle) * punch.ropeLength;
+      punch.x = branch.x + Math.sin(punch.swingAngle) * punch.ropeLength;
+      punch.y = branch.y - Math.cos(punch.swingAngle) * punch.ropeLength;
+      punch.rotation = punch.swingAngle * 0.3;
+    }
+  }
+  
+  // Update max height and add points
+  if (punch.y > maxHeight) {
+    const heightGain = Math.floor((punch.y - maxHeight) / 10);
+    if (heightGain > 0 && sdkReady && ogp) {
+      ogp.addPoints(heightGain);
+      totalPointsThisSession += heightGain;
+    }
+    maxHeight = punch.y;
+  }
+  
+  score = Math.floor(maxHeight / 10);
+  
+  // Camera follow (smooth)
+  const targetCameraY = punch.y - canvas.height * 0.35;
+  cameraY += (targetCameraY - cameraY) * 0.08;
+  cameraY = Math.max(0, cameraY);
+  
+  // Spawn more branches ahead
+  const highestBranch = branches.length > 0 ? Math.max(...branches.map(b => b.y)) : 0;
+  while (highestBranch < cameraY + canvas.height + 600) {
+    spawnBranch(highestBranch + 140 + Math.random() * 100);
+  }
+  
+  // Spawn bananas
+  while (bananaSpawnY < cameraY + canvas.height + 600) {
+    spawnBanana();
+  }
+  
+  // Check banana collection
+  for (const banana of bananas) {
+    if (banana.collected) continue;
+    
+    const dx = punch.x - banana.x;
+    const dy = punch.y - banana.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (dist < 60) {
+      banana.collected = true;
+      score += 50;
       
-      // Face direction of swing
-      punch.rotation = punch.swingAngle;
+      // Add points to Play Fun
+      if (sdkReady && ogp) {
+        ogp.addPoints(50);
+        totalPointsThisSession += 50;
+      }
+      
+      playSound('collect');
+      
+      const screenY = canvas.height - (banana.y - cameraY);
+      emitParticles(banana.x, screenY, '#FFD700', 15);
+    }
+  }
+  
+  // Clean up off-screen objects
+  for (let i = branches.length - 1; i >= 0; i--) {
+    if (branches[i].y < cameraY - 200) {
+      branches.splice(i, 1);
+    }
+  }
+  
+  for (let i = bananas.length - 1; i >= 0; i--) {
+    if (bananas[i].y < cameraY - 200 || bananas[i].collected) {
+      bananas.splice(i, 1);
     }
   }
 }
@@ -1051,161 +1099,242 @@ function grabBranch(branch) {
   punch.attachedBranch = branch;
   branch.grabbed = true;
   
-  // Calculate swing angle from velocity
-  const dx = punch.position.x - branch.x;
-  const dy = punch.position.y - branch.y;
-  punch.ropeLength = Math.sqrt(dx * dx + dy * dy);
-  punch.swingAngle = Math.atan2(dx, -dy);
+  // Calculate swing angle from approach
+  const dx = punch.x - branch.x;
+  punch.ropeLength = Math.max(80, Math.min(120, Math.sqrt(dx * dx + Math.pow(punch.y - branch.y, 2))));
+  punch.swingAngle = Math.atan2(dx, punch.ropeLength);
+  punch.swingVel = punch.vx * 0.015;
   
-  // Convert velocity to swing velocity
-  const tangent = new THREE.Vector3(-Math.cos(punch.swingAngle), -Math.sin(punch.swingAngle), 0);
-  punch.swingVelocity = punch.velocity.dot(tangent) * 0.5 / punch.ropeLength;
+  punch.vx = 0;
+  punch.vy = 0;
+  punch.expression = 'happy';
+  punch.rotation = 0;
   
-  punch.velocity.set(0, 0, 0);
-  punch.applySquash(0.8);
-  punch.setExpression('happy');
-  
-  // Combo system
+  // Combo
   const now = Date.now();
-  if (now - lastGrabTime < 2000) {
+  if (now - lastGrabTime < 2500) {
     combo++;
-    score += 10 * combo;
+    const comboPoints = 10 * combo;
+    score += comboPoints;
+    
+    if (sdkReady && ogp) {
+      ogp.addPoints(comboPoints);
+      totalPointsThisSession += comboPoints;
+    }
+    
+    showCombo();
   } else {
     combo = 1;
   }
   lastGrabTime = now;
   
-  audio.playGrab();
-  cameraShake.shake(0.3);
-  particles.emit(branch.x, branch.y, 0, 5, {
-    color: 0x228B22,
-    speed: 2,
-    lifetime: 0.4
-  });
+  playSound('grab');
+  
+  const screenY = canvas.height - (branch.y - cameraY);
+  emitParticles(branch.x, screenY, '#228B22', 8);
   
   gameState = State.SWINGING;
 }
 
-function gameOver() {
+function showCombo() {
+  if (combo >= 2) {
+    const comboEl = document.getElementById('combo-display');
+    comboEl.textContent = `🔥 x${combo} COMBO!`;
+    comboEl.classList.add('active');
+    setTimeout(() => comboEl.classList.remove('active'), 600);
+  }
+}
+
+async function gameOver() {
   gameState = State.GAME_OVER;
-  punch.setExpression('scared');
-  audio.playFall();
-  showGameOver();
+  punch.expression = 'scared';
+  playSound('fall');
+  
+  // Save points to Play Fun
+  if (sdkReady && ogp && totalPointsThisSession > 0) {
+    try {
+      await ogp.endGame();
+      console.log('Game ended, points saved!');
+    } catch (e) {
+      console.log('Could not save points:', e);
+    }
+  }
+  
+  document.getElementById('final-height').textContent = Math.floor(maxHeight / 10);
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('game-over').classList.add('active');
 }
 
 function resetGame() {
   score = 0;
   maxHeight = 0;
   combo = 0;
+  cameraY = 0;
+  bananaSpawnY = 400;
+  totalPointsThisSession = 0;
   
-  punch.position.set(0, 5, 0);
-  punch.velocity.set(0, 0, 0);
+  punch.x = canvas.width / 2;
+  punch.y = 200;
+  punch.vx = 0;
+  punch.vy = 0;
   punch.rotation = 0;
   punch.attachedBranch = null;
-  punch.setExpression('normal');
+  punch.expression = 'normal';
   
-  camera.position.set(0, 5, 15);
+  resetBranches();
+  bananas.length = 0;
+  particles.length = 0;
   
-  branches.reset();
-  bananas.reset();
-  particles.reset();
+  // Spawn initial bananas
+  for (let i = 0; i < 5; i++) {
+    spawnBanana();
+  }
   
-  hideGameOver();
+  document.getElementById('game-over').classList.remove('active');
   gameState = State.PLAYING;
+}
+
+// ============================================
+// DRAW AIM INDICATOR
+// ============================================
+function drawAimIndicator() {
+  if (!isDragging || gameState !== State.AIMING) return;
+  
+  const dx = dragStart.x - dragCurrent.x;
+  const dy = dragStart.y - dragCurrent.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  
+  if (dist < 20) return;
+  
+  const power = Math.min(dist / 80, 1);
+  const angle = Math.atan2(dy, dx);
+  
+  const screenY = canvas.height - (punch.y - cameraY);
+  
+  // Draw trajectory dots
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  for (let t = 0; t < 1; t += 0.08) {
+    const px = punch.x + Math.cos(angle) * power * t * 180;
+    const py = screenY - Math.sin(angle) * power * t * 180 + t * t * 120;
+    const size = 6 * (1 - t * 0.7);
+    
+    ctx.beginPath();
+    ctx.arc(px, py, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Power indicator circle around Punch
+  const hue = (1 - power) * 120;
+  ctx.strokeStyle = `hsla(${hue}, 80%, 50%, 0.8)`;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(punch.x, screenY, 60 + power * 30, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+// ============================================
+// DRAW ROPE
+// ============================================
+function drawRope() {
+  if (gameState !== State.SWINGING || !punch.attachedBranch) return;
+  
+  const branch = punch.attachedBranch;
+  const branchScreenY = canvas.height - (branch.y - cameraY);
+  const punchScreenY = canvas.height - (punch.y - cameraY);
+  
+  // Vine rope
+  ctx.strokeStyle = '#228B22';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  
+  // Draw curved vine
+  ctx.beginPath();
+  ctx.moveTo(branch.x, branchScreenY);
+  
+  const midX = (branch.x + punch.x) / 2 + Math.sin(Date.now() * 0.003) * 5;
+  const midY = (branchScreenY + punchScreenY - 40) / 2;
+  
+  ctx.quadraticCurveTo(midX, midY, punch.x, punchScreenY - 40);
+  ctx.stroke();
+  
+  // Vine leaves
+  ctx.fillStyle = '#32CD32';
+  const leafCount = 3;
+  for (let i = 1; i <= leafCount; i++) {
+    const t = i / (leafCount + 1);
+    const lx = branch.x + (punch.x - branch.x) * t;
+    const ly = branchScreenY + (punchScreenY - 40 - branchScreenY) * t;
+    
+    ctx.beginPath();
+    ctx.ellipse(lx + 8, ly, 8, 5, 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ============================================
+// UPDATE UI
+// ============================================
+function updateUI() {
+  document.getElementById('score-display').textContent = `🍌 ${score}`;
+  document.getElementById('height-display').textContent = `📏 ${Math.floor(maxHeight / 10)}m`;
 }
 
 // ============================================
 // MAIN GAME LOOP
 // ============================================
-let lastTime = 0;
-const TICK_RATE = 1000 / 60;
-let accumulator = 0;
-
-function gameLoop(currentTime) {
-  requestAnimationFrame(gameLoop);
-  
-  const deltaTime = currentTime - lastTime;
-  lastTime = currentTime;
+function gameLoop() {
+  // Clear
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   
   if (gameState === State.MENU) {
-    // Just render menu background
-    renderer.render(scene, camera);
+    requestAnimationFrame(gameLoop);
     return;
   }
   
-  accumulator += deltaTime;
+  // Update
+  if (gameState !== State.GAME_OVER) {
+    updatePhysics();
+  }
+  updateParticles();
   
-  // Fixed timestep physics
-  while (accumulator >= TICK_RATE) {
-    updatePhysics(TICK_RATE / 1000);
-    accumulator -= TICK_RATE;
+  // Draw
+  drawBackground();
+  
+  // Draw branches
+  for (const branch of branches) {
+    drawBranch(branch);
   }
   
-  // Update systems
-  const dt = deltaTime / 1000;
-  punch.update(dt);
-  branches.update(camera.position.y);
-  particles.update(dt);
-  
-  // Check banana collection
-  if (bananas.update(camera.position.y, punch.position)) {
-    score += 50;
-    audio.playCollect();
-    particles.emit(punch.position.x, punch.position.y, 0, 15, {
-      color: 0xFFD700,
-      speed: 5,
-      lifetime: 0.5
-    });
+  // Draw bananas
+  for (const banana of bananas) {
+    drawBanana(banana);
   }
   
-  // Combo decay
-  if (Date.now() - lastGrabTime > 2000) {
-    combo = 0;
-  }
+  // Draw rope
+  drawRope();
   
-  // Update max height
-  if (punch.position.y > maxHeight) {
-    maxHeight = punch.position.y;
-    score += Math.floor(punch.position.y - maxHeight);
-  }
+  // Draw Punch
+  const punchScreenY = canvas.height - (punch.y - cameraY);
+  const isSwinging = gameState === State.SWINGING;
+  drawPunch(punch.x, punchScreenY, 0.7, punch.rotation, punch.expression, isSwinging);
   
-  // Camera follow
-  const targetY = Math.max(punch.position.y, camera.position.y - 2);
-  camera.position.y += (targetY - camera.position.y) * 0.1;
+  // Draw particles
+  drawParticles();
   
-  cameraShake.update();
-  camera.position.add(cameraShake.offset);
+  // Draw aim indicator
+  drawAimIndicator();
   
-  // Update sky color based on height
-  const heightFactor = Math.min(maxHeight / 100, 1);
-  const skyColor = new THREE.Color().lerpColors(
-    new THREE.Color(0x87ceeb), // Light blue
-    new THREE.Color(0x1a1a3e), // Dark blue
-    heightFactor
-  );
-  scene.background = skyColor;
-  scene.fog.color = skyColor;
-  
+  // Update UI
   updateUI();
-  renderer.render(scene, camera);
+  
+  requestAnimationFrame(gameLoop);
 }
 
 // ============================================
-// INITIALIZATION
+// INIT
 // ============================================
-const punch = new Punch();
-const branches = new BranchManager();
-const bananas = new BananaManager();
-const particles = new ParticleSystem();
-const audio = new AudioManager();
-const input = new InputController();
-
-createBackground();
-branches.reset();
-
-// Event listeners
-document.getElementById('start-btn').addEventListener('click', async () => {
-  await audio.init();
+document.getElementById('start-btn').addEventListener('click', () => {
+  initAudio();
   document.getElementById('start-screen').classList.add('hidden');
   resetGame();
 });
@@ -1214,20 +1343,8 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   resetGame();
 });
 
-// Handle resize
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
 // Start loop
 requestAnimationFrame(gameLoop);
-
-// play.fun Platform Integration (when SDK available)
-if (window.PlayFun) {
-  PlayFun.ready();
-}
 
 console.log('🐵 Fling Punch loaded! Swing your way home!');
 </script>

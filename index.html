@@ -29,25 +29,57 @@
     #height { color: #FFD700; font-size: 18px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin-top: 5px; }
     
     #fuel-container {
-      margin-top: 10px;
-      background: rgba(0,0,0,0.4);
-      border-radius: 10px;
-      padding: 5px 10px;
-      width: 160px;
+      margin-top: 12px;
+      background: rgba(0,0,0,0.6);
+      border-radius: 12px;
+      padding: 8px 12px;
+      width: 180px;
+      border: 2px solid rgba(0,191,255,0.5);
     }
-    #fuel-label { color: #fff; font-size: 12px; font-weight: bold; }
+    #fuel-label { color: #00BFFF; font-size: 14px; font-weight: bold; text-shadow: 0 0 10px rgba(0,191,255,0.5); }
     #fuel-bar { 
-      width: 100%; height: 14px; 
-      background: #333; 
-      border-radius: 7px; 
+      width: 100%; height: 20px; 
+      background: #222; 
+      border-radius: 10px; 
       overflow: hidden; 
-      margin-top: 3px;
+      margin-top: 5px;
+      border: 1px solid #444;
     }
     #fuel-fill { 
       height: 100%; 
       background: linear-gradient(90deg, #00BFFF, #00FF88); 
       transition: width 0.1s;
-      border-radius: 7px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,255,136,0.5);
+    }
+    
+    #reunion-popup {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    #reunion-popup.active {
+      opacity: 1;
+    }
+    #reunion-popup .hearts {
+      font-size: 60px;
+      animation: heartFloat 1s ease-out infinite;
+    }
+    @keyframes heartFloat {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+    #reunion-popup .message {
+      font-size: 36px;
+      font-weight: bold;
+      color: #FF69B4;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5), 0 0 20px rgba(255,105,180,0.5);
+      margin-top: 10px;
     }
     
     #mobile-controls {
@@ -156,6 +188,11 @@
     <button class="ctrl-btn shoot" id="btn-shoot">💥</button>
     <button class="ctrl-btn jump" id="btn-jump">🚀</button>
   </div>
+</div>
+
+<div id="reunion-popup">
+  <div class="hearts">💕💖💕</div>
+  <div class="message">Together Forever!</div>
 </div>
 
 <div id="game-over" class="overlay">
@@ -555,28 +592,188 @@ function drawEnemy(e) {
   
   if (sy < -50 || sy > canvas.height + 50) return;
   
-  // Body
-  ctx.fillStyle = '#3E2723';
+  const cx = sx + e.w/2;
+  const cy = sy + e.h/2;
+  
+  // Spiky fur silhouette (rogue look)
+  ctx.fillStyle = '#1a0a0a';
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const spikeLen = 8 + Math.sin(Date.now()*0.01 + i)*3;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(angle)*e.w/2, cy + Math.sin(angle)*e.h/2);
+    ctx.lineTo(cx + Math.cos(angle)*(e.w/2 + spikeLen), cy + Math.sin(angle)*(e.h/2 + spikeLen));
+    ctx.lineTo(cx + Math.cos(angle + 0.3)*e.w/2, cy + Math.sin(angle + 0.3)*e.h/2);
+    ctx.fill();
+  }
+  
+  // Dark body
+  ctx.fillStyle = '#2d1f1f';
   ctx.beginPath();
-  ctx.arc(sx + e.w/2, sy + e.h/2, e.w/2, 0, Math.PI*2);
+  ctx.arc(cx, cy, e.w/2, 0, Math.PI*2);
   ctx.fill();
   
-  // Red eyes
-  ctx.fillStyle = '#F44336';
-  ctx.beginPath();
-  ctx.arc(sx + e.w*0.35, sy + e.h*0.4, 6, 0, Math.PI*2);
-  ctx.arc(sx + e.w*0.65, sy + e.h*0.4, 6, 0, Math.PI*2);
-  ctx.fill();
-  
-  // Angry brows
-  ctx.strokeStyle = '#000';
+  // Scar across face
+  ctx.strokeStyle = '#8B0000';
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(sx + e.w*0.2, sy + e.h*0.25);
-  ctx.lineTo(sx + e.w*0.42, sy + e.h*0.32);
-  ctx.moveTo(sx + e.w*0.8, sy + e.h*0.25);
-  ctx.lineTo(sx + e.w*0.58, sy + e.h*0.32);
+  ctx.moveTo(sx + 8, sy + 12);
+  ctx.lineTo(sx + e.w - 12, sy + e.h - 15);
   ctx.stroke();
+  
+  // Glowing red eyes
+  ctx.shadowColor = '#FF0000';
+  ctx.shadowBlur = 15;
+  ctx.fillStyle = '#FF0000';
+  ctx.beginPath();
+  ctx.arc(sx + e.w*0.32, sy + e.h*0.4, 7, 0, Math.PI*2);
+  ctx.arc(sx + e.w*0.68, sy + e.h*0.4, 7, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  
+  // Evil pupils (slits)
+  ctx.fillStyle = '#000';
+  ctx.fillRect(sx + e.w*0.32 - 1.5, sy + e.h*0.35, 3, 10);
+  ctx.fillRect(sx + e.w*0.68 - 1.5, sy + e.h*0.35, 3, 10);
+  
+  // Angry V eyebrows
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(sx + e.w*0.15, sy + e.h*0.2);
+  ctx.lineTo(sx + e.w*0.38, sy + e.h*0.3);
+  ctx.moveTo(sx + e.w*0.85, sy + e.h*0.2);
+  ctx.lineTo(sx + e.w*0.62, sy + e.h*0.3);
+  ctx.stroke();
+  
+  // Fangs / angry mouth
+  ctx.fillStyle = '#1a0a0a';
+  ctx.beginPath();
+  ctx.arc(cx, sy + e.h*0.7, 8, 0, Math.PI);
+  ctx.fill();
+  ctx.fillStyle = '#FFF';
+  ctx.beginPath();
+  ctx.moveTo(cx - 6, sy + e.h*0.68);
+  ctx.lineTo(cx - 3, sy + e.h*0.8);
+  ctx.lineTo(cx, sy + e.h*0.68);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(cx, sy + e.h*0.68);
+  ctx.lineTo(cx + 3, sy + e.h*0.8);
+  ctx.lineTo(cx + 6, sy + e.h*0.68);
+  ctx.fill();
+}
+
+// ============================================
+// STUFFED TOY (Goal)
+// ============================================
+let stuffedToy = null;
+let reunionActive = false;
+let reunionTimer = 0;
+let nextToyHeight = 500; // First toy at 500m (5000 units)
+
+function spawnStuffedToy(y) {
+  const platform = platforms.find(p => Math.abs(p.y - y) < 100);
+  if (platform) {
+    stuffedToy = { x: platform.x + platform.width/2, y: platform.y + 50, collected: false };
+  } else {
+    stuffedToy = { x: canvas.width/2, y: y, collected: false };
+  }
+}
+
+function drawStuffedToy() {
+  if (!stuffedToy || stuffedToy.collected) return;
+  
+  const sx = stuffedToy.x;
+  const sy = canvas.height - (stuffedToy.y - cameraY);
+  
+  if (sy < -80 || sy > canvas.height + 80) return;
+  
+  // Floating animation
+  const float = Math.sin(Date.now() * 0.003) * 8;
+  const ty = sy + float;
+  
+  // Glow effect
+  ctx.shadowColor = '#FFD700';
+  ctx.shadowBlur = 25;
+  
+  // Orange plush body
+  ctx.fillStyle = '#FF8C00';
+  ctx.beginPath();
+  ctx.ellipse(sx, ty, 25, 30, 0, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Lighter belly
+  ctx.fillStyle = '#FFDAB9';
+  ctx.beginPath();
+  ctx.ellipse(sx, ty + 5, 15, 18, 0, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Head
+  ctx.fillStyle = '#FF8C00';
+  ctx.beginPath();
+  ctx.arc(sx, ty - 30, 22, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Face
+  ctx.fillStyle = '#FFDAB9';
+  ctx.beginPath();
+  ctx.ellipse(sx, ty - 28, 14, 16, 0, 0, Math.PI*2);
+  ctx.fill();
+  
+  ctx.shadowBlur = 0;
+  
+  // Button eyes (stitched look)
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(sx - 6, ty - 32, 4, 0, Math.PI*2);
+  ctx.arc(sx + 6, ty - 32, 4, 0, Math.PI*2);
+  ctx.fill();
+  
+  // X stitches on eyes
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(sx - 8, ty - 34); ctx.lineTo(sx - 4, ty - 30);
+  ctx.moveTo(sx - 8, ty - 30); ctx.lineTo(sx - 4, ty - 34);
+  ctx.moveTo(sx + 4, ty - 34); ctx.lineTo(sx + 8, ty - 30);
+  ctx.moveTo(sx + 4, ty - 30); ctx.lineTo(sx + 8, ty - 34);
+  ctx.stroke();
+  
+  // Cute smile
+  ctx.strokeStyle = '#8B4513';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(sx, ty - 24, 6, 0.1*Math.PI, 0.9*Math.PI);
+  ctx.stroke();
+  
+  // Little ears
+  ctx.fillStyle = '#FF8C00';
+  ctx.beginPath();
+  ctx.arc(sx - 18, ty - 42, 8, 0, Math.PI*2);
+  ctx.arc(sx + 18, ty - 42, 8, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Arms reaching out
+  ctx.strokeStyle = '#FF8C00';
+  ctx.lineWidth = 10;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(sx - 20, ty);
+  ctx.lineTo(sx - 35, ty - 15);
+  ctx.moveTo(sx + 20, ty);
+  ctx.lineTo(sx + 35, ty - 15);
+  ctx.stroke();
+  
+  // Heart above (waiting for Punch!)
+  ctx.fillStyle = '#FF69B4';
+  const heartY = ty - 70 + Math.sin(Date.now()*0.005)*5;
+  ctx.beginPath();
+  ctx.moveTo(sx, heartY + 8);
+  ctx.bezierCurveTo(sx - 10, heartY, sx - 10, heartY - 10, sx, heartY - 5);
+  ctx.bezierCurveTo(sx + 10, heartY - 10, sx + 10, heartY, sx, heartY + 8);
+  ctx.fill();
 }
 
 function drawProjectile(p) {
@@ -701,6 +898,45 @@ function update() {
     maxHeight = punch.y;
   }
   
+  // Spawn stuffed toy at milestones (every 500m = 5000 units)
+  if (maxHeight >= nextToyHeight * 10 && !stuffedToy) {
+    spawnStuffedToy(nextToyHeight * 10 + 200);
+  }
+  
+  // Check reunion with stuffed toy
+  if (stuffedToy && !stuffedToy.collected && !reunionActive) {
+    const dx = punch.x + punch.width/2 - stuffedToy.x;
+    const dy = punch.y + punch.height/2 - stuffedToy.y;
+    if (Math.sqrt(dx*dx + dy*dy) < 50) {
+      // REUNION!
+      stuffedToy.collected = true;
+      reunionActive = true;
+      reunionTimer = 120; // 2 seconds at 60fps
+      score += 500;
+      if (sdkReady && ogp) ogp.addPoints(500);
+      sound('coin');
+      document.getElementById('reunion-popup').classList.add('active');
+      
+      // Spawn hearts
+      for (let i = 0; i < 20; i++) {
+        emit(stuffedToy.x + (Math.random()-0.5)*60, stuffedToy.y + (Math.random()-0.5)*60, '#FF69B4', 1);
+      }
+      
+      // Set next toy higher
+      nextToyHeight += 500;
+    }
+  }
+  
+  // Reunion timer
+  if (reunionActive) {
+    reunionTimer--;
+    if (reunionTimer <= 0) {
+      reunionActive = false;
+      document.getElementById('reunion-popup').classList.remove('active');
+      stuffedToy = null; // Ready for next one
+    }
+  }
+  
   // Camera
   const targetCam = punch.y - canvas.height * 0.35;
   cameraY += (targetCam - cameraY) * 0.1;
@@ -807,6 +1043,52 @@ function update() {
 }
 
 // ============================================
+// DRAW FLOATING HEARTS (during reunion)
+// ============================================
+let floatingHearts = [];
+
+function drawFloatingHearts() {
+  if (!reunionActive) return;
+  
+  // Spawn new hearts
+  if (Math.random() < 0.3) {
+    floatingHearts.push({
+      x: punch.x + punch.width/2 + (Math.random()-0.5)*100,
+      y: punch.y + 50,
+      vx: (Math.random()-0.5)*2,
+      vy: 2 + Math.random()*2,
+      size: 15 + Math.random()*15,
+      life: 1
+    });
+  }
+  
+  // Update and draw
+  for (let i = floatingHearts.length - 1; i >= 0; i--) {
+    const h = floatingHearts[i];
+    h.x += h.vx;
+    h.y += h.vy;
+    h.life -= 0.015;
+    
+    if (h.life <= 0) {
+      floatingHearts.splice(i, 1);
+      continue;
+    }
+    
+    const sx = h.x;
+    const sy = canvas.height - (h.y - cameraY);
+    
+    ctx.globalAlpha = h.life;
+    ctx.fillStyle = '#FF69B4';
+    ctx.beginPath();
+    ctx.moveTo(sx, sy + h.size*0.3);
+    ctx.bezierCurveTo(sx - h.size*0.5, sy, sx - h.size*0.5, sy - h.size*0.5, sx, sy - h.size*0.25);
+    ctx.bezierCurveTo(sx + h.size*0.5, sy - h.size*0.5, sx + h.size*0.5, sy, sx, sy + h.size*0.3);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ============================================
 // RENDER
 // ============================================
 function render() {
@@ -814,10 +1096,12 @@ function render() {
   drawBG();
   for (const p of platforms) drawPlatform(p);
   for (const b of bananas) drawBanana(b);
+  drawStuffedToy();
   for (const e of enemies) drawEnemy(e);
   for (const pr of projectiles) drawProjectile(pr);
   drawPunch();
   drawParticles();
+  drawFloatingHearts();
 }
 
 // ============================================
@@ -854,6 +1138,13 @@ function start() {
   enemies = [];
   projectiles = [];
   particles = [];
+  floatingHearts = [];
+  stuffedToy = null;
+  reunionActive = false;
+  reunionTimer = 0;
+  nextToyHeight = 500;
+  
+  document.getElementById('reunion-popup').classList.remove('active');
   
   // Ground
   spawnPlatform(0, canvas.width - 20, 10);

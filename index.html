@@ -4,15 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="x-ogp-key" content="YOUR_API_KEY">
-  <title>Fling Punch - Swing Your Way Home!</title>
+  <title>Fling Punch - Jetpack Jungle!</title>
   <script src="https://sdk.play.fun"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    
-    :root {
-      --sat: env(safe-area-inset-top);
-      --sab: env(safe-area-inset-bottom);
-    }
     
     body {
       overflow: hidden;
@@ -20,65 +15,93 @@
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       user-select: none;
-      background: #87ceeb;
+      background: #1a1a2e;
       font-family: 'Segoe UI', system-ui, sans-serif;
     }
     
-    #game-canvas {
-      display: block;
-      width: 100vw;
-      height: 100vh;
-    }
+    #game-canvas { display: block; }
     
     #ui-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       pointer-events: none;
-      padding-top: max(20px, var(--sat));
-      padding-bottom: max(20px, var(--sab));
     }
     
     #score-display {
       position: absolute;
-      top: max(20px, var(--sat));
-      left: 20px;
+      top: 20px; left: 20px;
       color: #fff;
       font-size: 28px;
       font-weight: bold;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }
     
-    #height-display {
+    #fuel-bar {
       position: absolute;
-      top: max(55px, calc(var(--sat) + 35px));
-      left: 20px;
-      color: #ffd700;
-      font-size: 20px;
-      font-weight: bold;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      top: 60px; left: 20px;
+      width: 150px; height: 20px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 10px;
+      overflow: hidden;
     }
     
-    #combo-display {
+    #fuel-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #00bfff, #00ff88);
+      transition: width 0.1s;
+    }
+    
+    #fuel-label {
       position: absolute;
-      top: 40%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: #ff6b6b;
-      font-size: 48px;
+      top: 63px; left: 25px;
+      color: #fff;
+      font-size: 12px;
       font-weight: bold;
-      text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
-      opacity: 0;
-      transition: opacity 0.3s;
     }
     
-    #combo-display.active {
-      opacity: 1;
-      animation: comboPulse 0.3s ease-out;
+    #mobile-controls {
+      position: fixed;
+      bottom: 20px;
+      left: 0; right: 0;
+      display: none;
+      justify-content: space-between;
+      padding: 0 20px;
+      pointer-events: auto;
     }
     
-    @keyframes comboPulse {
-      0% { transform: translate(-50%, -50%) scale(1.5); }
-      100% { transform: translate(-50%, -50%) scale(1); }
+    .mobile-btn-group {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .mobile-btn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      border: 3px solid rgba(255,255,255,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: #fff;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .mobile-btn:active {
+      background: rgba(255,255,255,0.5);
+      transform: scale(0.95);
+    }
+    
+    .mobile-btn.jetpack {
+      background: rgba(0,191,255,0.4);
+      border-color: #00bfff;
+    }
+    
+    .mobile-btn.shoot {
+      background: rgba(255,165,0,0.4);
+      border-color: #ffa500;
     }
     
     #game-over {
@@ -99,23 +122,9 @@
       pointer-events: auto;
     }
     
-    #game-over h1 {
-      color: #ff6b6b;
-      font-size: 52px;
-      margin-bottom: 20px;
-    }
-    
-    #game-over .stats {
-      color: #fff;
-      font-size: 26px;
-      margin-bottom: 30px;
-      text-align: center;
-      line-height: 1.6;
-    }
-    
-    #game-over .stats span {
-      color: #ffd700;
-    }
+    #game-over h1 { color: #ff6b6b; font-size: 48px; margin-bottom: 20px; }
+    #game-over .stats { color: #fff; font-size: 24px; margin-bottom: 30px; text-align: center; }
+    #game-over .stats span { color: #ffd700; }
     
     .game-btn {
       background: linear-gradient(180deg, #ff7f50 0%, #ff5722 100%);
@@ -127,12 +136,9 @@
       border-radius: 35px;
       cursor: pointer;
       box-shadow: 0 6px 20px rgba(255,87,34,0.4);
-      transition: transform 0.15s;
     }
     
-    .game-btn:active {
-      transform: scale(0.95);
-    }
+    .game-btn:active { transform: scale(0.95); }
     
     #start-screen {
       position: fixed;
@@ -145,60 +151,29 @@
       z-index: 100;
     }
     
-    #start-screen .monkey-emoji {
-      font-size: 120px;
-      margin-bottom: 20px;
-      animation: bounce 1s ease-in-out infinite;
-    }
+    #start-screen .emoji { font-size: 100px; margin-bottom: 20px; animation: bounce 1s ease-in-out infinite; }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
     
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-20px); }
-    }
+    #start-screen h1 { color: #fff; font-size: 48px; margin-bottom: 10px; text-shadow: 3px 3px 6px rgba(0,0,0,0.3); }
+    #start-screen .subtitle { color: #ffe4b5; font-size: 20px; margin-bottom: 30px; }
+    #start-screen .game-btn { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     
-    #start-screen h1 {
-      color: #fff;
-      font-size: 52px;
-      margin-bottom: 10px;
-      text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
-    }
-    
-    #start-screen .subtitle {
-      color: #ffe4b5;
-      font-size: 22px;
-      margin-bottom: 40px;
-    }
-    
-    #start-screen .game-btn {
-      animation: pulse 2s infinite;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-    }
-    
-    #instructions {
-      color: rgba(255,255,255,0.8);
-      font-size: 16px;
-      margin-top: 30px;
-      text-align: center;
-      line-height: 1.6;
-    }
+    #instructions { color: rgba(255,255,255,0.9); font-size: 14px; margin-top: 25px; text-align: center; line-height: 1.8; }
     
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
   <div id="start-screen">
-    <div class="monkey-emoji">🐵</div>
+    <div class="emoji">🐵🚀</div>
     <h1>Fling Punch</h1>
-    <div class="subtitle">Swing Your Way Home!</div>
+    <div class="subtitle">Jetpack Jungle Adventure!</div>
     <button id="start-btn" class="game-btn">TAP TO PLAY</button>
     <div id="instructions">
-      <b>Mouse/Touch:</b> Drag to aim, release to fling<br>
-      <b>Keyboard:</b> Arrow keys to aim, SPACE to launch<br>
-      Grab branches • Collect bananas 🍌
+      <b>Keyboard:</b> ← → Move | SPACE Jump/Jetpack | X Shoot<br>
+      <b>Mobile:</b> Touch controls appear below<br><br>
+      🍌 Collect bananas | 💀 Avoid enemies | 🚀 Use jetpack to fly!
     </div>
   </div>
   
@@ -206,72 +181,49 @@
   
   <div id="ui-overlay">
     <div id="score-display">🍌 0</div>
-    <div id="height-display">📏 0m</div>
-    <div id="combo-display">x2</div>
+    <div id="fuel-bar"><div id="fuel-fill"></div></div>
+    <div id="fuel-label">🚀 FUEL</div>
+  </div>
+  
+  <div id="mobile-controls">
+    <div class="mobile-btn-group">
+      <button class="mobile-btn" id="btn-left">←</button>
+      <button class="mobile-btn" id="btn-right">→</button>
+    </div>
+    <div class="mobile-btn-group">
+      <button class="mobile-btn shoot" id="btn-shoot">💥</button>
+      <button class="mobile-btn jetpack" id="btn-jump">🚀</button>
+    </div>
   </div>
   
   <div id="game-over">
-    <h1>💔 Oh no!</h1>
+    <h1>💔 Game Over!</h1>
     <div class="stats">
-      You reached <span id="final-height">0</span> meters<br>
-      Score: <span id="final-score">0</span> 🍌
+      Score: <span id="final-score">0</span> 🍌<br>
+      Height: <span id="final-height">0</span>m
     </div>
-    <button id="restart-btn" class="game-btn">Try Again</button>
+    <button id="restart-btn" class="game-btn">Play Again</button>
   </div>
 
 <script>
 // ============================================
-// PLAY FUN SDK INTEGRATION
+// PLAY FUN SDK
 // ============================================
 let ogp = null;
 let sdkReady = false;
-let totalPointsThisSession = 0;
-let bestHeight = 0;
 
-// Initialize SDK when available
 if (typeof OpenGameSDK !== 'undefined') {
-  ogp = new OpenGameSDK({ 
-    ui: { 
-      usePointsWidget: true,
-      theme: 'dark'
-    } 
-  });
-  
-  ogp.on('OnReady', () => {
-    console.log('Play Fun SDK ready!');
-    sdkReady = true;
-  });
-  
-  ogp.on('SavePointsSuccess', () => {
-    console.log('Points saved!');
-  });
-  
-  ogp.on('SavePointsFailed', () => {
-    console.log('Failed to save points');
-  });
-  
-  // Initialize with game ID (replace with actual game ID after submission)
+  ogp = new OpenGameSDK({ ui: { usePointsWidget: true, theme: 'dark' } });
+  ogp.on('OnReady', () => { sdkReady = true; });
   ogp.init({ gameId: 'fling-punch' });
 }
 
 // ============================================
-// FLING PUNCH - 2D Canvas Game
+// CANVAS SETUP
 // ============================================
-
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
-// Load real monkey image
-const punchImage = new Image();
-let punchImageLoaded = false;
-
-// Use a cute monkey face (we'll draw it with canvas as fallback)
-punchImage.onload = () => {
-  punchImageLoaded = true;
-  console.log('Punch image loaded!');
-};
-
-// Resize canvas
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -279,440 +231,322 @@ function resize() {
 resize();
 window.addEventListener('resize', resize);
 
+// Show mobile controls on touch devices
+if ('ontouchstart' in window) {
+  document.getElementById('mobile-controls').style.display = 'flex';
+}
+
 // ============================================
 // GAME STATE
 // ============================================
-const State = {
-  MENU: 'menu',
-  PLAYING: 'playing',
-  AIMING: 'aiming',
-  FLYING: 'flying',
-  SWINGING: 'swinging',
-  GAME_OVER: 'game_over'
-};
-
-let gameState = State.MENU;
+let gameRunning = false;
 let score = 0;
 let maxHeight = 0;
-let combo = 0;
-let lastGrabTime = 0;
 let cameraY = 0;
 
 // ============================================
-// PUNCH CHARACTER - Cute realistic macaque
+// PUNCH - THE HERO
 // ============================================
-function drawPunch(x, y, scale = 1, rotation = 0, expression = 'normal', isSwinging = false) {
+const punch = {
+  x: 0, y: 0,
+  vx: 0, vy: 0,
+  width: 50, height: 70,
+  onGround: false,
+  fuel: 100,
+  maxFuel: 100,
+  facing: 1, // 1 = right, -1 = left
+  jetpackOn: false,
+  shootCooldown: 0
+};
+
+function drawPunch() {
+  const screenX = punch.x - cameraX;
+  const screenY = canvas.height - (punch.y - cameraY) - punch.height;
+  
   ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(rotation);
-  ctx.scale(scale, scale);
+  ctx.translate(screenX + punch.width/2, screenY + punch.height/2);
+  ctx.scale(punch.facing, 1);
   
-  const s = 1; // Base scale multiplier
+  const s = 0.7;
   
-  // === BODY ===
-  // Main body (furry oval)
+  // Jetpack flames
+  if (punch.jetpackOn && punch.fuel > 0) {
+    ctx.fillStyle = '#FF6600';
+    ctx.beginPath();
+    const flameHeight = 20 + Math.random() * 15;
+    ctx.moveTo(-15 * s, 35 * s);
+    ctx.lineTo(-10 * s, 35 * s + flameHeight);
+    ctx.lineTo(-5 * s, 35 * s);
+    ctx.fill();
+    
+    ctx.fillStyle = '#FFFF00';
+    ctx.beginPath();
+    ctx.moveTo(-12 * s, 35 * s);
+    ctx.lineTo(-10 * s, 35 * s + flameHeight * 0.6);
+    ctx.lineTo(-8 * s, 35 * s);
+    ctx.fill();
+  }
+  
+  // Jetpack on back
+  ctx.fillStyle = '#444';
+  ctx.fillRect(-20 * s, -10 * s, 12 * s, 40 * s);
+  ctx.fillStyle = '#00BFFF';
+  ctx.fillRect(-18 * s, -5 * s, 8 * s, 30 * s);
+  
+  // Body
   ctx.fillStyle = '#A08070';
   ctx.beginPath();
-  ctx.ellipse(0, 35 * s, 28 * s, 35 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 20 * s, 22 * s, 28 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // Lighter belly patch
+  // Belly
   ctx.fillStyle = '#C4B0A0';
   ctx.beginPath();
-  ctx.ellipse(0, 40 * s, 18 * s, 22 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(5 * s, 22 * s, 14 * s, 18 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // === HEAD ===
-  // Head fur (main circle)
+  // Head
   ctx.fillStyle = '#8B7355';
   ctx.beginPath();
-  ctx.arc(0, -10 * s, 45 * s, 0, Math.PI * 2);
+  ctx.arc(0, -18 * s, 32 * s, 0, Math.PI * 2);
   ctx.fill();
   
-  // Fur tufts on sides
-  ctx.fillStyle = '#8B7355';
-  for (let angle = -0.8; angle <= 0.8; angle += 0.2) {
-    ctx.beginPath();
-    ctx.ellipse(
-      Math.sin(angle) * 42 * s, 
-      -10 * s + Math.cos(angle) * 5 * s, 
-      8 * s, 12 * s, 
-      angle, 0, Math.PI * 2
-    );
-    ctx.fill();
-  }
-  
-  // === FACE ===
-  // Heart-shaped pink face
+  // Face
   ctx.fillStyle = '#FFCDB8';
   ctx.beginPath();
-  // Create heart shape for face
-  ctx.moveTo(0, 15 * s);
-  ctx.bezierCurveTo(-30 * s, 0, -28 * s, -30 * s, 0, -25 * s);
-  ctx.bezierCurveTo(28 * s, -30 * s, 30 * s, 0, 0, 15 * s);
+  ctx.moveTo(0, 5 * s);
+  ctx.bezierCurveTo(-22 * s, -5 * s, -20 * s, -35 * s, 0, -30 * s);
+  ctx.bezierCurveTo(20 * s, -35 * s, 22 * s, -5 * s, 0, 5 * s);
   ctx.fill();
   
-  // === EYES ===
-  const eyeY = -12 * s;
-  const eyeX = 14 * s;
-  
-  // Eye whites (large, cute)
-  ctx.fillStyle = '#FFFFFF';
+  // Eyes
+  ctx.fillStyle = '#FFF';
   ctx.beginPath();
-  ctx.ellipse(-eyeX, eyeY, 12 * s, 14 * s, 0, 0, Math.PI * 2);
-  ctx.ellipse(eyeX, eyeY, 12 * s, 14 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(-10 * s, -20 * s, 8 * s, 10 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(10 * s, -20 * s, 8 * s, 10 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // Eye outline
-  ctx.strokeStyle = '#5D4037';
-  ctx.lineWidth = 1.5 * s;
+  ctx.fillStyle = '#000';
   ctx.beginPath();
-  ctx.ellipse(-eyeX, eyeY, 12 * s, 14 * s, 0, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.ellipse(eyeX, eyeY, 12 * s, 14 * s, 0, 0, Math.PI * 2);
-  ctx.stroke();
-  
-  // Pupils (big, cute)
-  const pupilOffset = expression === 'scared' ? 3 * s : 0;
-  ctx.fillStyle = '#2D1810';
-  ctx.beginPath();
-  ctx.arc(-eyeX, eyeY + pupilOffset, 7 * s, 0, Math.PI * 2);
-  ctx.arc(eyeX, eyeY + pupilOffset, 7 * s, 0, Math.PI * 2);
+  ctx.arc(-10 * s, -18 * s, 5 * s, 0, Math.PI * 2);
+  ctx.arc(10 * s, -18 * s, 5 * s, 0, Math.PI * 2);
   ctx.fill();
   
-  // Eye highlights (anime style - 2 per eye)
-  ctx.fillStyle = '#FFFFFF';
-  // Main highlight
+  ctx.fillStyle = '#FFF';
   ctx.beginPath();
-  ctx.arc(-eyeX - 2 * s, eyeY - 4 * s, 4 * s, 0, Math.PI * 2);
-  ctx.arc(eyeX - 2 * s, eyeY - 4 * s, 4 * s, 0, Math.PI * 2);
-  ctx.fill();
-  // Secondary highlight
-  ctx.beginPath();
-  ctx.arc(-eyeX + 3 * s, eyeY + 2 * s, 2 * s, 0, Math.PI * 2);
-  ctx.arc(eyeX + 3 * s, eyeY + 2 * s, 2 * s, 0, Math.PI * 2);
+  ctx.arc(-8 * s, -20 * s, 2 * s, 0, Math.PI * 2);
+  ctx.arc(12 * s, -20 * s, 2 * s, 0, Math.PI * 2);
   ctx.fill();
   
-  // === EYEBROWS ===
-  ctx.strokeStyle = '#5D4037';
-  ctx.lineWidth = 2.5 * s;
-  ctx.lineCap = 'round';
-  
-  if (expression === 'scared') {
-    // Worried eyebrows (angled up in middle)
-    ctx.beginPath();
-    ctx.moveTo(-eyeX - 10 * s, eyeY - 18 * s);
-    ctx.quadraticCurveTo(-eyeX, eyeY - 22 * s, -eyeX + 8 * s, eyeY - 16 * s);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(eyeX + 10 * s, eyeY - 18 * s);
-    ctx.quadraticCurveTo(eyeX, eyeY - 22 * s, eyeX - 8 * s, eyeY - 16 * s);
-    ctx.stroke();
-  } else if (expression === 'happy') {
-    // Happy curved brows
-    ctx.beginPath();
-    ctx.arc(-eyeX, eyeY - 18 * s, 8 * s, Math.PI * 0.2, Math.PI * 0.8);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(eyeX, eyeY - 18 * s, 8 * s, Math.PI * 0.2, Math.PI * 0.8);
-    ctx.stroke();
-  }
-  
-  // === NOSE ===
+  // Nose
   ctx.fillStyle = '#D4A5A5';
   ctx.beginPath();
-  ctx.ellipse(0, 2 * s, 8 * s, 6 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, -5 * s, 6 * s, 4 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // Nostrils
-  ctx.fillStyle = '#8B6969';
-  ctx.beginPath();
-  ctx.ellipse(-3 * s, 3 * s, 2 * s, 1.5 * s, 0, 0, Math.PI * 2);
-  ctx.ellipse(3 * s, 3 * s, 2 * s, 1.5 * s, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // === MOUTH ===
+  // Smile
   ctx.strokeStyle = '#8B6969';
-  ctx.lineWidth = 2 * s;
-  ctx.lineCap = 'round';
-  
-  if (expression === 'happy') {
-    // Big smile
-    ctx.beginPath();
-    ctx.arc(0, 6 * s, 8 * s, 0.1 * Math.PI, 0.9 * Math.PI);
-    ctx.stroke();
-  } else if (expression === 'scared') {
-    // Open mouth (scared)
-    ctx.fillStyle = '#5D4037';
-    ctx.beginPath();
-    ctx.ellipse(0, 10 * s, 6 * s, 8 * s, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#FF8080';
-    ctx.beginPath();
-    ctx.ellipse(0, 12 * s, 4 * s, 4 * s, 0, 0, Math.PI * 2);
-    ctx.fill();
-  } else {
-    // Neutral line
-    ctx.beginPath();
-    ctx.moveTo(-5 * s, 10 * s);
-    ctx.lineTo(5 * s, 10 * s);
-    ctx.stroke();
-  }
-  
-  // === BLUSH ===
-  ctx.fillStyle = 'rgba(255, 150, 150, 0.4)';
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.ellipse(-25 * s, 0, 8 * s, 5 * s, 0, 0, Math.PI * 2);
-  ctx.ellipse(25 * s, 0, 8 * s, 5 * s, 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.arc(0, -2 * s, 5 * s, 0.1 * Math.PI, 0.9 * Math.PI);
+  ctx.stroke();
   
-  // === EARS ===
-  // Outer ear
+  // Ears
   ctx.fillStyle = '#8B7355';
   ctx.beginPath();
-  ctx.ellipse(-40 * s, -8 * s, 14 * s, 16 * s, -0.3, 0, Math.PI * 2);
-  ctx.ellipse(40 * s, -8 * s, 14 * s, 16 * s, 0.3, 0, Math.PI * 2);
+  ctx.ellipse(-30 * s, -18 * s, 10 * s, 12 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(30 * s, -18 * s, 10 * s, 12 * s, 0, 0, Math.PI * 2);
   ctx.fill();
-  
-  // Inner ear (pink)
   ctx.fillStyle = '#FFCDB8';
   ctx.beginPath();
-  ctx.ellipse(-40 * s, -8 * s, 8 * s, 10 * s, -0.3, 0, Math.PI * 2);
-  ctx.ellipse(40 * s, -8 * s, 8 * s, 10 * s, 0.3, 0, Math.PI * 2);
+  ctx.ellipse(-30 * s, -18 * s, 5 * s, 7 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(30 * s, -18 * s, 5 * s, 7 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // === ARMS ===
-  ctx.fillStyle = '#8B7355';
-  ctx.strokeStyle = '#8B7355';
-  ctx.lineWidth = 12 * s;
-  ctx.lineCap = 'round';
-  
-  if (isSwinging) {
-    // Arms up (grabbing branch)
-    ctx.beginPath();
-    ctx.moveTo(-22 * s, 20 * s);
-    ctx.lineTo(-35 * s, -25 * s);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(22 * s, 20 * s);
-    ctx.lineTo(35 * s, -25 * s);
-    ctx.stroke();
-    
-    // Hands up
-    ctx.fillStyle = '#FFCDB8';
-    ctx.beginPath();
-    ctx.arc(-35 * s, -30 * s, 10 * s, 0, Math.PI * 2);
-    ctx.arc(35 * s, -30 * s, 10 * s, 0, Math.PI * 2);
-    ctx.fill();
-  } else {
-    // Arms out/down
-    ctx.beginPath();
-    ctx.moveTo(-22 * s, 25 * s);
-    ctx.lineTo(-40 * s, 50 * s);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(22 * s, 25 * s);
-    ctx.lineTo(40 * s, 50 * s);
-    ctx.stroke();
-    
-    // Hands
-    ctx.fillStyle = '#FFCDB8';
-    ctx.beginPath();
-    ctx.arc(-44 * s, 54 * s, 10 * s, 0, Math.PI * 2);
-    ctx.arc(44 * s, 54 * s, 10 * s, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  
-  // === LEGS ===
+  // Arms
   ctx.strokeStyle = '#8B7355';
   ctx.lineWidth = 10 * s;
-  ctx.beginPath();
-  ctx.moveTo(-12 * s, 65 * s);
-  ctx.lineTo(-18 * s, 85 * s);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(12 * s, 65 * s);
-  ctx.lineTo(18 * s, 85 * s);
-  ctx.stroke();
-  
-  // Feet
-  ctx.fillStyle = '#FFCDB8';
-  ctx.beginPath();
-  ctx.ellipse(-18 * s, 90 * s, 12 * s, 8 * s, -0.2, 0, Math.PI * 2);
-  ctx.ellipse(18 * s, 90 * s, 12 * s, 8 * s, 0.2, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // === TAIL ===
-  ctx.strokeStyle = '#8B7355';
-  ctx.lineWidth = 8 * s;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(0, 65 * s);
+  ctx.moveTo(18 * s, 10 * s);
+  ctx.lineTo(35 * s, 25 * s);
+  ctx.stroke();
   
-  const tailWave = Math.sin(Date.now() * 0.005) * 10;
-  const tailCurl = expression === 'happy' ? 30 : (expression === 'scared' ? -15 : 0);
-  
-  ctx.bezierCurveTo(
-    -25 * s + tailWave, 75 * s,
-    -40 * s + tailCurl, 60 * s,
-    -35 * s + tailCurl + tailWave, 40 * s
-  );
+  // Legs
+  ctx.beginPath();
+  ctx.moveTo(-8 * s, 45 * s);
+  ctx.lineTo(-12 * s, 60 * s);
+  ctx.moveTo(8 * s, 45 * s);
+  ctx.lineTo(12 * s, 60 * s);
   ctx.stroke();
   
   ctx.restore();
 }
 
 // ============================================
-// PUNCH PHYSICS
+// PLATFORMS
 // ============================================
-const punch = {
-  x: 0,
-  y: 0,
-  vx: 0,
-  vy: 0,
-  rotation: 0,
-  angularVel: 0,
-  expression: 'normal',
-  attachedBranch: null,
-  swingAngle: 0,
-  swingVel: 0,
-  ropeLength: 100
-};
+const platforms = [];
+let platformSpawnY = 0;
 
-// ============================================
-// BRANCHES
-// ============================================
-const branches = [];
-
-function spawnBranch(y) {
-  branches.push({
-    x: (Math.random() - 0.5) * (canvas.width - 250) + canvas.width / 2,
+function spawnPlatform(y, width, x) {
+  platforms.push({
+    x: x !== undefined ? x : Math.random() * (canvas.width - width - 100) + 50,
     y: y,
-    width: 120 + Math.random() * 80,
-    grabbed: false
+    width: width || 120 + Math.random() * 100,
+    type: Math.random() < 0.1 ? 'moving' : 'static',
+    moveDir: 1,
+    moveSpeed: 1 + Math.random()
   });
 }
 
-function resetBranches() {
-  branches.length = 0;
-  // Start with a branch right below punch
-  branches.push({
-    x: canvas.width / 2,
-    y: 100,
-    width: 150,
-    grabbed: false
-  });
+function drawPlatform(p) {
+  const screenX = p.x - cameraX;
+  const screenY = canvas.height - (p.y - cameraY);
   
-  for (let y = 250; y < 2000; y += 140 + Math.random() * 100) {
-    spawnBranch(y);
-  }
-}
-
-function drawBranch(branch) {
-  const screenY = canvas.height - (branch.y - cameraY);
-  
-  if (screenY < -50 || screenY > canvas.height + 50) return;
-  
-  // Branch shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
   ctx.beginPath();
-  ctx.roundRect(branch.x - branch.width/2 + 5, screenY - 7, branch.width, 20, 10);
+  ctx.roundRect(screenX + 5, screenY + 5, p.width, 22, 10);
   ctx.fill();
   
-  // Main branch
-  const gradient = ctx.createLinearGradient(0, screenY - 12, 0, screenY + 12);
-  gradient.addColorStop(0, '#A0522D');
-  gradient.addColorStop(0.5, '#8B4513');
-  gradient.addColorStop(1, '#654321');
-  ctx.fillStyle = gradient;
-  
+  // Platform
+  const grad = ctx.createLinearGradient(0, screenY - 10, 0, screenY + 15);
+  grad.addColorStop(0, '#8B4513');
+  grad.addColorStop(1, '#654321');
+  ctx.fillStyle = grad;
   ctx.beginPath();
-  ctx.roundRect(branch.x - branch.width/2, screenY - 12, branch.width, 24, 12);
+  ctx.roundRect(screenX, screenY - 10, p.width, 22, 10);
   ctx.fill();
   
-  // Branch texture lines
-  ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 3; i++) {
-    const lx = branch.x - branch.width/2 + 20 + i * 30;
+  // Grass on top
+  ctx.fillStyle = '#228B22';
+  ctx.beginPath();
+  ctx.roundRect(screenX, screenY - 15, p.width, 12, [8, 8, 0, 0]);
+  ctx.fill();
+  
+  // Grass blades
+  ctx.strokeStyle = '#32CD32';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < p.width; i += 15) {
+    const h = 5 + Math.sin(i + Date.now() * 0.002) * 3;
     ctx.beginPath();
-    ctx.moveTo(lx, screenY - 8);
-    ctx.lineTo(lx + 10, screenY + 8);
+    ctx.moveTo(screenX + i + 7, screenY - 15);
+    ctx.lineTo(screenX + i + 7 + Math.sin(Date.now() * 0.003 + i) * 2, screenY - 15 - h);
     ctx.stroke();
   }
-  
-  // Leaves on ends
-  ctx.fillStyle = '#228B22';
-  // Left leaves
-  ctx.beginPath();
-  ctx.ellipse(branch.x - branch.width/2 - 15, screenY - 10, 25, 15, -0.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(branch.x - branch.width/2 - 5, screenY - 18, 20, 12, -0.3, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Right leaves
-  ctx.beginPath();
-  ctx.ellipse(branch.x + branch.width/2 + 15, screenY - 10, 25, 15, 0.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(branch.x + branch.width/2 + 5, screenY - 18, 20, 12, 0.3, 0, Math.PI * 2);
-  ctx.fill();
 }
 
 // ============================================
 // BANANAS
 // ============================================
 const bananas = [];
-let bananaSpawnY = 400;
 
-function spawnBanana() {
-  bananas.push({
-    x: Math.random() * (canvas.width - 150) + 75,
-    y: bananaSpawnY,
-    collected: false,
-    rotation: Math.random() * Math.PI * 2
-  });
-  bananaSpawnY += 250 + Math.random() * 200;
+function spawnBanana(x, y) {
+  bananas.push({ x, y, collected: false, rotation: Math.random() * Math.PI * 2 });
 }
 
 function drawBanana(b) {
   if (b.collected) return;
   
+  const screenX = b.x - cameraX;
   const screenY = canvas.height - (b.y - cameraY);
-  if (screenY < -50 || screenY > canvas.height + 50) return;
   
   ctx.save();
-  ctx.translate(b.x, screenY);
-  ctx.rotate(b.rotation + Date.now() * 0.002);
+  ctx.translate(screenX, screenY);
+  ctx.rotate(Math.sin(Date.now() * 0.003 + b.rotation) * 0.2);
   
-  // Glow effect
+  // Glow
   ctx.shadowColor = '#FFD700';
   ctx.shadowBlur = 15;
   
-  // Banana body
   ctx.fillStyle = '#FFD700';
   ctx.beginPath();
-  ctx.moveTo(-20, 5);
-  ctx.quadraticCurveTo(-25, -20, 0, -30);
-  ctx.quadraticCurveTo(25, -20, 20, 5);
-  ctx.quadraticCurveTo(10, 12, 0, 12);
-  ctx.quadraticCurveTo(-10, 12, -20, 5);
+  ctx.ellipse(0, 0, 12, 20, 0.3, 0, Math.PI * 2);
   ctx.fill();
   
   ctx.shadowBlur = 0;
-  
-  // Stem
   ctx.fillStyle = '#8B4513';
-  ctx.fillRect(-3, -33, 6, 8);
+  ctx.fillRect(-2, -22, 4, 6);
   
-  // Highlight
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.restore();
+}
+
+// ============================================
+// ENEMIES
+// ============================================
+const enemies = [];
+
+function spawnEnemy(x, y) {
+  enemies.push({
+    x, y,
+    vx: (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random()),
+    width: 40, height: 40,
+    alive: true
+  });
+}
+
+function drawEnemy(e) {
+  if (!e.alive) return;
+  
+  const screenX = e.x - cameraX;
+  const screenY = canvas.height - (e.y - cameraY) - e.height;
+  
+  // Evil monkey
+  ctx.fillStyle = '#4a3728';
   ctx.beginPath();
-  ctx.ellipse(-8, -10, 5, 12, -0.3, 0, Math.PI * 2);
+  ctx.arc(screenX + 20, screenY + 20, 20, 0, Math.PI * 2);
   ctx.fill();
   
+  // Red eyes
+  ctx.fillStyle = '#FF0000';
+  ctx.beginPath();
+  ctx.arc(screenX + 14, screenY + 16, 5, 0, Math.PI * 2);
+  ctx.arc(screenX + 26, screenY + 16, 5, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Angry brows
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(screenX + 8, screenY + 10);
+  ctx.lineTo(screenX + 18, screenY + 14);
+  ctx.moveTo(screenX + 32, screenY + 10);
+  ctx.lineTo(screenX + 22, screenY + 14);
+  ctx.stroke();
+}
+
+// ============================================
+// PROJECTILES
+// ============================================
+const projectiles = [];
+
+function shoot() {
+  if (punch.shootCooldown > 0) return;
+  
+  projectiles.push({
+    x: punch.x + punch.width/2 + punch.facing * 20,
+    y: punch.y + 30,
+    vx: punch.facing * 15,
+    vy: 0
+  });
+  
+  punch.shootCooldown = 15;
+  playSound('shoot');
+}
+
+function drawProjectile(p) {
+  const screenX = p.x - cameraX;
+  const screenY = canvas.height - (p.y - cameraY);
+  
+  // Banana peel projectile
+  ctx.fillStyle = '#FFD700';
+  ctx.save();
+  ctx.translate(screenX, screenY);
+  ctx.rotate(Date.now() * 0.02);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 8, 15, 0, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -725,11 +559,11 @@ function emitParticles(x, y, color, count) {
   for (let i = 0; i < count; i++) {
     particles.push({
       x, y,
-      vx: (Math.random() - 0.5) * 10,
-      vy: Math.random() * -10 - 2,
+      vx: (Math.random() - 0.5) * 8,
+      vy: Math.random() * -6 - 2,
       life: 1,
       color,
-      size: 4 + Math.random() * 6
+      size: 3 + Math.random() * 5
     });
   }
 }
@@ -738,13 +572,10 @@ function updateParticles() {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
     p.x += p.vx;
-    p.vy += 0.4;
+    p.vy += 0.3;
     p.y += p.vy;
-    p.life -= 0.025;
-    
-    if (p.life <= 0) {
-      particles.splice(i, 1);
-    }
+    p.life -= 0.02;
+    if (p.life <= 0) particles.splice(i, 1);
   }
 }
 
@@ -753,7 +584,7 @@ function drawParticles() {
     ctx.globalAlpha = p.life;
     ctx.fillStyle = p.color;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
@@ -762,69 +593,47 @@ function drawParticles() {
 // ============================================
 // BACKGROUND
 // ============================================
+let cameraX = 0;
+
 function drawBackground() {
-  // Sky gradient based on height
+  // Sky
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
   const heightFactor = Math.min(maxHeight / 2000, 1);
-  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  
-  const r1 = Math.floor(135 - heightFactor * 100);
-  const g1 = Math.floor(206 - heightFactor * 100);
-  const b1 = Math.floor(235 - heightFactor * 100);
-  const r2 = Math.floor(224 - heightFactor * 150);
-  const g2 = Math.floor(247 - heightFactor * 150);
-  const b2 = Math.floor(250 - heightFactor * 150);
-  
-  gradient.addColorStop(0, `rgb(${r1},${g1},${b1})`);
-  gradient.addColorStop(1, `rgb(${r2},${g2},${b2})`);
-  
-  ctx.fillStyle = gradient;
+  grad.addColorStop(0, `hsl(${200 - heightFactor * 30}, 70%, ${70 - heightFactor * 30}%)`);
+  grad.addColorStop(1, `hsl(${120 - heightFactor * 20}, 50%, ${60 - heightFactor * 20}%)`);
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
   // Sun
   ctx.fillStyle = '#FFF8DC';
   ctx.shadowColor = '#FFD700';
-  ctx.shadowBlur = 50;
+  ctx.shadowBlur = 40;
   ctx.beginPath();
-  ctx.arc(canvas.width - 80, 80, 40, 0, Math.PI * 2);
+  ctx.arc(canvas.width - 100, 80, 35, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
   
-  // Distant trees (parallax)
-  ctx.fillStyle = '#2d5a27';
-  for (let i = 0; i < 12; i++) {
-    const x = ((i * 120 - cameraY * 0.05) % (canvas.width + 150)) - 50;
-    const h = 80 + Math.sin(i * 1.7) * 40;
-    
-    ctx.beginPath();
-    ctx.moveTo(x, canvas.height);
-    ctx.lineTo(x + 40, canvas.height - h);
-    ctx.lineTo(x + 80, canvas.height);
-    ctx.fill();
-  }
-  
-  // Closer trees
-  ctx.fillStyle = '#1e4d1e';
-  for (let i = 0; i < 8; i++) {
-    const x = ((i * 180 + 50 - cameraY * 0.1) % (canvas.width + 200)) - 80;
-    const h = 120 + Math.sin(i * 2.3) * 50;
-    
-    ctx.beginPath();
-    ctx.moveTo(x, canvas.height);
-    ctx.lineTo(x + 60, canvas.height - h);
-    ctx.lineTo(x + 120, canvas.height);
-    ctx.fill();
-  }
-  
   // Clouds
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-  for (let i = 0; i < 5; i++) {
-    const x = ((i * 250 + Date.now() * 0.01 + cameraY * 0.02) % (canvas.width + 200)) - 100;
-    const y = 60 + i * 35;
-    
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  for (let i = 0; i < 6; i++) {
+    const x = ((i * 200 + Date.now() * 0.01 - cameraX * 0.1) % (canvas.width + 200)) - 100;
+    const y = 50 + (i % 3) * 60;
     ctx.beginPath();
     ctx.arc(x, y, 25, 0, Math.PI * 2);
     ctx.arc(x + 20, y - 10, 20, 0, Math.PI * 2);
     ctx.arc(x + 40, y, 25, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Distant trees
+  ctx.fillStyle = '#1e4d1e';
+  for (let i = 0; i < 15; i++) {
+    const x = ((i * 150 - cameraX * 0.2 - cameraY * 0.05) % (canvas.width + 200)) - 50;
+    const h = 60 + Math.sin(i * 2) * 30;
+    ctx.beginPath();
+    ctx.moveTo(x, canvas.height);
+    ctx.lineTo(x + 30, canvas.height - h);
+    ctx.lineTo(x + 60, canvas.height);
     ctx.fill();
   }
 }
@@ -832,157 +641,39 @@ function drawBackground() {
 // ============================================
 // INPUT
 // ============================================
-let isDragging = false;
-let dragStart = { x: 0, y: 0 };
-let dragCurrent = { x: 0, y: 0 };
+const keys = {};
 
-// Keyboard controls
-let keyboardAim = { angle: Math.PI * 0.75, power: 0.7 }; // Default: up-left
-let keysPressed = {};
-let usingKeyboard = false;
-
-function getEventPos(e) {
-  if (e.touches && e.touches.length > 0) {
-    return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  }
-  return { x: e.clientX, y: e.clientY };
-}
-
-// Touch/Mouse events
-canvas.addEventListener('touchstart', onDragStart, { passive: false });
-canvas.addEventListener('mousedown', onDragStart);
-canvas.addEventListener('touchmove', onDragMove, { passive: false });
-canvas.addEventListener('mousemove', onDragMove);
-canvas.addEventListener('touchend', onDragEnd);
-canvas.addEventListener('mouseup', onDragEnd);
-
-// Keyboard events
-document.addEventListener('keydown', (e) => {
-  keysPressed[e.code] = true;
-  
-  // Switch to keyboard mode
-  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) {
-    usingKeyboard = true;
-    
-    if ((gameState === State.PLAYING || gameState === State.SWINGING) && e.code !== 'Space') {
-      gameState = State.AIMING;
-    }
-    
-    // Launch on space
-    if (e.code === 'Space' && (gameState === State.AIMING || gameState === State.PLAYING || gameState === State.SWINGING)) {
-      e.preventDefault();
-      launchWithKeyboard();
-    }
-  }
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space') e.preventDefault();
 });
+document.addEventListener('keyup', e => keys[e.code] = false);
 
-document.addEventListener('keyup', (e) => {
-  keysPressed[e.code] = false;
-});
+// Mobile controls
+const mobileState = { left: false, right: false, jump: false, shoot: false };
 
-function updateKeyboardAim() {
-  if (!usingKeyboard || gameState !== State.AIMING) return;
-  
-  const aimSpeed = 0.04;
-  const powerSpeed = 0.02;
-  
-  // Adjust angle with left/right
-  if (keysPressed['ArrowLeft'] || keysPressed['KeyA']) {
-    keyboardAim.angle += aimSpeed;
-  }
-  if (keysPressed['ArrowRight'] || keysPressed['KeyD']) {
-    keyboardAim.angle -= aimSpeed;
-  }
-  
-  // Adjust power with up/down
-  if (keysPressed['ArrowUp'] || keysPressed['KeyW']) {
-    keyboardAim.power = Math.min(1, keyboardAim.power + powerSpeed);
-  }
-  if (keysPressed['ArrowDown'] || keysPressed['KeyS']) {
-    keyboardAim.power = Math.max(0.2, keyboardAim.power - powerSpeed);
-  }
-  
-  // Clamp angle (between pointing left-up and right-up)
-  keyboardAim.angle = Math.max(Math.PI * 0.15, Math.min(Math.PI * 0.85, keyboardAim.angle));
+function setupMobileButton(id, state) {
+  const btn = document.getElementById(id);
+  btn.addEventListener('touchstart', e => { e.preventDefault(); mobileState[state] = true; });
+  btn.addEventListener('touchend', e => { e.preventDefault(); mobileState[state] = false; });
 }
 
-function launchWithKeyboard() {
-  if (gameState !== State.AIMING && gameState !== State.PLAYING && gameState !== State.SWINGING) return;
-  
-  const power = keyboardAim.power * 22;
-  const angle = keyboardAim.angle;
-  
-  punch.attachedBranch = null;
-  punch.vx = Math.cos(angle) * power;
-  punch.vy = -Math.sin(angle) * power;
-  punch.angularVel = (Math.random() - 0.5) * 0.15;
-  punch.expression = 'happy';
-  
-  playSound('jump');
-  
-  const screenY = canvas.height - (punch.y - cameraY);
-  emitParticles(punch.x, screenY, '#CCCCCC', 10);
-  
-  gameState = State.FLYING;
-  usingKeyboard = false;
-}
+setupMobileButton('btn-left', 'left');
+setupMobileButton('btn-right', 'right');
+setupMobileButton('btn-jump', 'jump');
+setupMobileButton('btn-shoot', 'shoot');
 
-function onDragStart(e) {
-  if (gameState !== State.PLAYING && gameState !== State.SWINGING) return;
-  e.preventDefault();
-  
-  usingKeyboard = false;
-  isDragging = true;
-  const pos = getEventPos(e);
-  dragStart = pos;
-  dragCurrent = pos;
-  gameState = State.AIMING;
-}
-
-function onDragMove(e) {
-  if (!isDragging) return;
-  e.preventDefault();
-  dragCurrent = getEventPos(e);
-}
-
-function onDragEnd(e) {
-  if (!isDragging) return;
-  isDragging = false;
-  
-  if (gameState === State.AIMING) {
-    launchPunch();
+function isPressed(action) {
+  switch(action) {
+    case 'left': return keys['ArrowLeft'] || keys['KeyA'] || mobileState.left;
+    case 'right': return keys['ArrowRight'] || keys['KeyD'] || mobileState.right;
+    case 'jump': return keys['Space'] || keys['ArrowUp'] || keys['KeyW'] || mobileState.jump;
+    case 'shoot': return keys['KeyX'] || keys['KeyZ'] || mobileState.shoot;
   }
-}
-
-function launchPunch() {
-  const dx = dragStart.x - dragCurrent.x;
-  const dy = dragStart.y - dragCurrent.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  
-  if (dist < 20) {
-    gameState = punch.attachedBranch ? State.SWINGING : State.PLAYING;
-    return;
-  }
-  
-  const power = Math.min(dist / 80, 1) * 22;
-  const angle = Math.atan2(dy, dx);
-  
-  punch.attachedBranch = null;
-  punch.vx = Math.cos(angle) * power;
-  punch.vy = -Math.sin(angle) * power;
-  punch.angularVel = (Math.random() - 0.5) * 0.15;
-  punch.expression = 'happy';
-  
-  playSound('jump');
-  
-  const screenY = canvas.height - (punch.y - cameraY);
-  emitParticles(punch.x, screenY, '#CCCCCC', 10);
-  
-  gameState = State.FLYING;
 }
 
 // ============================================
-// AUDIO (Procedural)
+// AUDIO
 // ============================================
 let audioCtx = null;
 
@@ -993,489 +684,358 @@ function initAudio() {
 
 function playSound(type) {
   if (!audioCtx) return;
-  
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.connect(gain);
   gain.connect(audioCtx.destination);
-  
   const now = audioCtx.currentTime;
   
   switch(type) {
     case 'jump':
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(350, now);
-      osc.frequency.exponentialRampToValueAtTime(700, now + 0.12);
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      osc.start(now);
-      osc.stop(now + 0.15);
-      break;
-      
-    case 'grab':
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(900, now);
-      osc.frequency.exponentialRampToValueAtTime(450, now + 0.1);
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.exponentialRampToValueAtTime(500, now + 0.1);
       gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-      osc.start(now);
-      osc.stop(now + 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc.start(now); osc.stop(now + 0.15);
       break;
-      
+    case 'jetpack':
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(100 + Math.random() * 50, now);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+      osc.start(now); osc.stop(now + 0.05);
+      break;
+    case 'shoot':
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      osc.start(now); osc.stop(now + 0.1);
+      break;
     case 'collect':
       osc.type = 'sine';
       osc.frequency.setValueAtTime(523, now);
-      osc.frequency.setValueAtTime(659, now + 0.08);
-      osc.frequency.setValueAtTime(784, now + 0.16);
-      osc.frequency.setValueAtTime(1047, now + 0.24);
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-      osc.start(now);
-      osc.stop(now + 0.3);
+      osc.frequency.setValueAtTime(659, now + 0.07);
+      osc.frequency.setValueAtTime(784, now + 0.14);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      osc.start(now); osc.stop(now + 0.25);
       break;
-      
-    case 'fall':
+    case 'hit':
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(400, now);
-      osc.frequency.exponentialRampToValueAtTime(80, now + 0.5);
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-      osc.start(now);
-      osc.stop(now + 0.5);
+      osc.frequency.setValueAtTime(200, now);
+      osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+      break;
+    case 'explode':
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      osc.start(now); osc.stop(now + 0.2);
       break;
   }
 }
 
 // ============================================
-// GAME LOGIC
+// PHYSICS & GAME LOGIC
 // ============================================
-const GRAVITY = 0.6;
-const GRAB_RADIUS = 80;
+const GRAVITY = 0.5;
+const JUMP_FORCE = -12;
+const MOVE_SPEED = 5;
+const JETPACK_FORCE = -0.8;
 
-function updatePhysics() {
-  if (gameState === State.FLYING) {
-    punch.vy += GRAVITY;
-    punch.x += punch.vx;
-    punch.y += punch.vy;
-    punch.rotation += punch.angularVel;
-    
-    // Air resistance
-    punch.vx *= 0.995;
-    punch.angularVel *= 0.98;
-    
-    // Expression based on velocity
-    if (punch.vy > 8) {
-      punch.expression = 'scared';
+function update() {
+  if (!gameRunning) return;
+  
+  // Input
+  if (isPressed('left')) {
+    punch.vx = -MOVE_SPEED;
+    punch.facing = -1;
+  } else if (isPressed('right')) {
+    punch.vx = MOVE_SPEED;
+    punch.facing = 1;
+  } else {
+    punch.vx *= 0.8;
+  }
+  
+  // Jump / Jetpack
+  punch.jetpackOn = false;
+  if (isPressed('jump')) {
+    if (punch.onGround) {
+      punch.vy = JUMP_FORCE;
+      punch.onGround = false;
+      playSound('jump');
+    } else if (punch.fuel > 0) {
+      punch.vy += JETPACK_FORCE;
+      punch.vy = Math.max(punch.vy, -8);
+      punch.fuel -= 0.5;
+      punch.jetpackOn = true;
+      if (Math.random() < 0.3) playSound('jetpack');
+    }
+  }
+  
+  // Shoot
+  if (isPressed('shoot')) shoot();
+  if (punch.shootCooldown > 0) punch.shootCooldown--;
+  
+  // Refuel when on ground
+  if (punch.onGround) {
+    punch.fuel = Math.min(punch.maxFuel, punch.fuel + 0.5);
+  }
+  
+  // Physics
+  punch.vy += GRAVITY;
+  punch.x += punch.vx;
+  punch.y += punch.vy;
+  
+  // Platform collision
+  punch.onGround = false;
+  for (const p of platforms) {
+    // Moving platforms
+    if (p.type === 'moving') {
+      p.x += p.moveDir * p.moveSpeed;
+      if (p.x < 50 || p.x + p.width > canvas.width - 50) p.moveDir *= -1;
     }
     
-    // Check branch grab
-    for (const branch of branches) {
-      if (branch.grabbed) continue;
-      
-      const dx = punch.x - branch.x;
-      const dy = punch.y - branch.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      
-      // Can only grab if coming from above or side
-      if (dist < GRAB_RADIUS && punch.y > branch.y - 50) {
-        grabBranch(branch);
+    // Collision check
+    if (punch.vy >= 0 &&
+        punch.x + punch.width > p.x &&
+        punch.x < p.x + p.width &&
+        punch.y + punch.vy <= p.y + 15 &&
+        punch.y >= p.y - 10) {
+      punch.y = p.y;
+      punch.vy = 0;
+      punch.onGround = true;
+      if (p.type === 'moving') punch.x += p.moveDir * p.moveSpeed;
+    }
+  }
+  
+  // Ground
+  if (punch.y < 0) {
+    punch.y = 0;
+    punch.vy = 0;
+    punch.onGround = true;
+  }
+  
+  // Screen bounds
+  punch.x = Math.max(0, Math.min(canvas.width - punch.width, punch.x));
+  
+  // Update max height
+  if (punch.y > maxHeight) {
+    const heightGain = Math.floor((punch.y - maxHeight) / 20);
+    if (heightGain > 0 && sdkReady && ogp) ogp.addPoints(heightGain);
+    maxHeight = punch.y;
+  }
+  
+  // Camera
+  cameraY = Math.max(0, punch.y - canvas.height * 0.4);
+  cameraX = 0;
+  
+  // Spawn platforms
+  while (platformSpawnY < cameraY + canvas.height + 300) {
+    spawnPlatform(platformSpawnY);
+    
+    // Spawn banana on some platforms
+    if (Math.random() < 0.4) {
+      const lastP = platforms[platforms.length - 1];
+      spawnBanana(lastP.x + lastP.width / 2, lastP.y + 40);
+    }
+    
+    // Spawn enemy occasionally
+    if (Math.random() < 0.15 && platformSpawnY > 300) {
+      const lastP = platforms[platforms.length - 1];
+      spawnEnemy(lastP.x + 20, lastP.y + 10);
+    }
+    
+    platformSpawnY += 80 + Math.random() * 60;
+  }
+  
+  // Update enemies
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    
+    e.x += e.vx;
+    
+    // Bounce off edges
+    const platform = platforms.find(p => 
+      e.y >= p.y && e.y <= p.y + 20 &&
+      e.x + e.width > p.x && e.x < p.x + p.width
+    );
+    if (platform) {
+      if (e.x < platform.x || e.x + e.width > platform.x + platform.width) {
+        e.vx *= -1;
+      }
+    }
+    
+    // Hit player
+    if (punch.x < e.x + e.width &&
+        punch.x + punch.width > e.x &&
+        punch.y < e.y + e.height &&
+        punch.y + punch.height > e.y) {
+      gameOver();
+      return;
+    }
+  }
+  
+  // Update projectiles
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    
+    // Hit enemy
+    for (const e of enemies) {
+      if (!e.alive) continue;
+      if (p.x > e.x && p.x < e.x + e.width &&
+          p.y > e.y && p.y < e.y + e.height) {
+        e.alive = false;
+        score += 100;
+        if (sdkReady && ogp) ogp.addPoints(100);
+        playSound('explode');
+        
+        const screenX = e.x - cameraX;
+        const screenY = canvas.height - (e.y - cameraY);
+        emitParticles(screenX + 20, screenY - 20, '#FF6600', 15);
+        
+        projectiles.splice(i, 1);
         break;
       }
     }
     
-    // Check fall (below camera)
-    if (punch.y < cameraY - 100) {
-      gameOver();
-    }
-    
-  } else if (gameState === State.SWINGING) {
-    const branch = punch.attachedBranch;
-    if (branch) {
-      // Pendulum physics
-      const g = 0.4;
-      punch.swingVel += (g / punch.ropeLength) * Math.sin(punch.swingAngle);
-      punch.swingVel *= 0.992; // Damping
-      punch.swingAngle += punch.swingVel;
-      
-      // Clamp swing angle
-      punch.swingAngle = Math.max(-Math.PI * 0.6, Math.min(Math.PI * 0.6, punch.swingAngle));
-      
-      // Update position
-      punch.x = branch.x + Math.sin(punch.swingAngle) * punch.ropeLength;
-      punch.y = branch.y - Math.cos(punch.swingAngle) * punch.ropeLength;
-      punch.rotation = punch.swingAngle * 0.3;
+    // Remove if off screen
+    if (p.x < cameraX - 100 || p.x > cameraX + canvas.width + 100) {
+      projectiles.splice(i, 1);
     }
   }
   
-  // Update max height and add points
-  if (punch.y > maxHeight) {
-    const heightGain = Math.floor((punch.y - maxHeight) / 10);
-    if (heightGain > 0 && sdkReady && ogp) {
-      ogp.addPoints(heightGain);
-      totalPointsThisSession += heightGain;
-    }
-    maxHeight = punch.y;
-  }
-  
-  score = Math.floor(maxHeight / 10);
-  
-  // Camera follow (smooth)
-  const targetCameraY = punch.y - canvas.height * 0.35;
-  cameraY += (targetCameraY - cameraY) * 0.08;
-  cameraY = Math.max(0, cameraY);
-  
-  // Spawn more branches ahead
-  const highestBranch = branches.length > 0 ? Math.max(...branches.map(b => b.y)) : 0;
-  while (highestBranch < cameraY + canvas.height + 600) {
-    spawnBranch(highestBranch + 140 + Math.random() * 100);
-  }
-  
-  // Spawn bananas
-  while (bananaSpawnY < cameraY + canvas.height + 600) {
-    spawnBanana();
-  }
-  
-  // Check banana collection
-  for (const banana of bananas) {
-    if (banana.collected) continue;
+  // Collect bananas
+  for (const b of bananas) {
+    if (b.collected) continue;
     
-    const dx = punch.x - banana.x;
-    const dy = punch.y - banana.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    
-    if (dist < 60) {
-      banana.collected = true;
+    const dx = punch.x + punch.width/2 - b.x;
+    const dy = punch.y + punch.height/2 - b.y;
+    if (Math.sqrt(dx*dx + dy*dy) < 40) {
+      b.collected = true;
       score += 50;
-      
-      // Add points to Play Fun
-      if (sdkReady && ogp) {
-        ogp.addPoints(50);
-        totalPointsThisSession += 50;
-      }
-      
+      if (sdkReady && ogp) ogp.addPoints(50);
       playSound('collect');
       
-      const screenY = canvas.height - (banana.y - cameraY);
-      emitParticles(banana.x, screenY, '#FFD700', 15);
+      const screenX = b.x - cameraX;
+      const screenY = canvas.height - (b.y - cameraY);
+      emitParticles(screenX, screenY, '#FFD700', 10);
     }
   }
   
-  // Clean up off-screen objects
-  for (let i = branches.length - 1; i >= 0; i--) {
-    if (branches[i].y < cameraY - 200) {
-      branches.splice(i, 1);
-    }
+  // Cleanup
+  platforms.filter(p => p.y > cameraY - 200);
+  bananas.filter(b => b.y > cameraY - 200);
+  enemies.filter(e => e.y > cameraY - 200);
+  
+  // Fall death
+  if (punch.y < cameraY - 100) {
+    gameOver();
   }
   
-  for (let i = bananas.length - 1; i >= 0; i--) {
-    if (bananas[i].y < cameraY - 200 || bananas[i].collected) {
-      bananas.splice(i, 1);
-    }
-  }
+  updateParticles();
+  
+  // Update UI
+  document.getElementById('score-display').textContent = `🍌 ${score}`;
+  document.getElementById('fuel-fill').style.width = `${punch.fuel}%`;
 }
 
-function grabBranch(branch) {
-  punch.attachedBranch = branch;
-  branch.grabbed = true;
+// ============================================
+// RENDER
+// ============================================
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  // Calculate swing angle from approach
-  const dx = punch.x - branch.x;
-  punch.ropeLength = Math.max(80, Math.min(120, Math.sqrt(dx * dx + Math.pow(punch.y - branch.y, 2))));
-  punch.swingAngle = Math.atan2(dx, punch.ropeLength);
-  punch.swingVel = punch.vx * 0.015;
+  drawBackground();
   
+  for (const p of platforms) drawPlatform(p);
+  for (const b of bananas) drawBanana(b);
+  for (const e of enemies) drawEnemy(e);
+  for (const p of projectiles) drawProjectile(p);
+  
+  drawPunch();
+  drawParticles();
+}
+
+// ============================================
+// GAME LOOP
+// ============================================
+function gameLoop() {
+  update();
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+// ============================================
+// GAME CONTROL
+// ============================================
+function startGame() {
+  initAudio();
+  
+  score = 0;
+  maxHeight = 0;
+  cameraY = 0;
+  platformSpawnY = 100;
+  
+  punch.x = canvas.width / 2 - 25;
+  punch.y = 0;
   punch.vx = 0;
   punch.vy = 0;
-  punch.expression = 'happy';
-  punch.rotation = 0;
+  punch.fuel = 100;
+  punch.facing = 1;
+  punch.onGround = true;
   
-  // Combo
-  const now = Date.now();
-  if (now - lastGrabTime < 2500) {
-    combo++;
-    const comboPoints = 10 * combo;
-    score += comboPoints;
-    
-    if (sdkReady && ogp) {
-      ogp.addPoints(comboPoints);
-      totalPointsThisSession += comboPoints;
-    }
-    
-    showCombo();
-  } else {
-    combo = 1;
+  platforms.length = 0;
+  bananas.length = 0;
+  enemies.length = 0;
+  projectiles.length = 0;
+  particles.length = 0;
+  
+  // Starting platform
+  spawnPlatform(0, canvas.width, 0);
+  
+  // Initial platforms
+  for (let y = 100; y < 600; y += 80 + Math.random() * 60) {
+    spawnPlatform(y);
+    platformSpawnY = y + 100;
   }
-  lastGrabTime = now;
   
-  playSound('grab');
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('game-over').classList.remove('active');
   
-  const screenY = canvas.height - (branch.y - cameraY);
-  emitParticles(branch.x, screenY, '#228B22', 8);
-  
-  gameState = State.SWINGING;
-}
-
-function showCombo() {
-  if (combo >= 2) {
-    const comboEl = document.getElementById('combo-display');
-    comboEl.textContent = `🔥 x${combo} COMBO!`;
-    comboEl.classList.add('active');
-    setTimeout(() => comboEl.classList.remove('active'), 600);
-  }
+  gameRunning = true;
 }
 
 async function gameOver() {
-  gameState = State.GAME_OVER;
-  punch.expression = 'scared';
-  playSound('fall');
+  gameRunning = false;
+  playSound('hit');
   
-  // Save points to Play Fun
-  if (sdkReady && ogp && totalPointsThisSession > 0) {
-    try {
-      await ogp.endGame();
-      console.log('Game ended, points saved!');
-    } catch (e) {
-      console.log('Could not save points:', e);
-    }
+  if (sdkReady && ogp && score > 0) {
+    try { await ogp.endGame(); } catch(e) {}
   }
   
-  document.getElementById('final-height').textContent = Math.floor(maxHeight / 10);
   document.getElementById('final-score').textContent = score;
+  document.getElementById('final-height').textContent = Math.floor(maxHeight / 10);
   document.getElementById('game-over').classList.add('active');
-}
-
-function resetGame() {
-  score = 0;
-  maxHeight = 0;
-  combo = 0;
-  cameraY = 0;
-  bananaSpawnY = 400;
-  totalPointsThisSession = 0;
-  
-  punch.x = canvas.width / 2;
-  punch.y = 200;
-  punch.vx = 0;
-  punch.vy = 0;
-  punch.rotation = 0;
-  punch.attachedBranch = null;
-  punch.expression = 'normal';
-  
-  resetBranches();
-  bananas.length = 0;
-  particles.length = 0;
-  
-  // Spawn initial bananas
-  for (let i = 0; i < 5; i++) {
-    spawnBanana();
-  }
-  
-  document.getElementById('game-over').classList.remove('active');
-  gameState = State.PLAYING;
-}
-
-// ============================================
-// DRAW AIM INDICATOR
-// ============================================
-function drawAimIndicator() {
-  if (gameState !== State.AIMING) return;
-  
-  let power, angle;
-  
-  if (usingKeyboard) {
-    // Keyboard aiming
-    power = keyboardAim.power;
-    angle = keyboardAim.angle;
-  } else if (isDragging) {
-    // Mouse/touch aiming
-    const dx = dragStart.x - dragCurrent.x;
-    const dy = dragStart.y - dragCurrent.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    
-    if (dist < 20) return;
-    
-    power = Math.min(dist / 80, 1);
-    angle = Math.atan2(dy, dx);
-  } else {
-    return;
-  }
-  
-  const screenY = canvas.height - (punch.y - cameraY);
-  
-  // Draw trajectory dots
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-  for (let t = 0; t < 1; t += 0.06) {
-    const px = punch.x + Math.cos(angle) * power * t * 200;
-    const py = screenY - Math.sin(angle) * power * t * 200 + t * t * 150;
-    const size = 8 * (1 - t * 0.6);
-    
-    ctx.beginPath();
-    ctx.arc(px, py, size, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  
-  // Arrow showing direction
-  const arrowLen = 60 + power * 40;
-  const arrowX = punch.x + Math.cos(angle) * arrowLen;
-  const arrowY = screenY - Math.sin(angle) * arrowLen;
-  
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 4;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(punch.x, screenY);
-  ctx.lineTo(arrowX, arrowY);
-  ctx.stroke();
-  
-  // Arrowhead
-  const headAngle = 0.4;
-  const headLen = 15;
-  ctx.beginPath();
-  ctx.moveTo(arrowX, arrowY);
-  ctx.lineTo(
-    arrowX - Math.cos(angle - headAngle) * headLen,
-    arrowY + Math.sin(angle - headAngle) * headLen
-  );
-  ctx.moveTo(arrowX, arrowY);
-  ctx.lineTo(
-    arrowX - Math.cos(angle + headAngle) * headLen,
-    arrowY + Math.sin(angle + headAngle) * headLen
-  );
-  ctx.stroke();
-  
-  // Power indicator circle
-  const hue = (1 - power) * 120;
-  ctx.strokeStyle = `hsla(${hue}, 80%, 50%, 0.8)`;
-  ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.arc(punch.x, screenY, 70 + power * 30, 0, Math.PI * 2);
-  ctx.stroke();
-  
-  // Power text (keyboard mode)
-  if (usingKeyboard) {
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`Power: ${Math.round(power * 100)}%`, punch.x, screenY + 120);
-    ctx.fillText('← → Aim  |  ↑ ↓ Power  |  SPACE Launch', punch.x, screenY + 145);
-  }
-}
-
-// ============================================
-// DRAW ROPE
-// ============================================
-function drawRope() {
-  if (gameState !== State.SWINGING || !punch.attachedBranch) return;
-  
-  const branch = punch.attachedBranch;
-  const branchScreenY = canvas.height - (branch.y - cameraY);
-  const punchScreenY = canvas.height - (punch.y - cameraY);
-  
-  // Vine rope
-  ctx.strokeStyle = '#228B22';
-  ctx.lineWidth = 6;
-  ctx.lineCap = 'round';
-  
-  // Draw curved vine
-  ctx.beginPath();
-  ctx.moveTo(branch.x, branchScreenY);
-  
-  const midX = (branch.x + punch.x) / 2 + Math.sin(Date.now() * 0.003) * 5;
-  const midY = (branchScreenY + punchScreenY - 40) / 2;
-  
-  ctx.quadraticCurveTo(midX, midY, punch.x, punchScreenY - 40);
-  ctx.stroke();
-  
-  // Vine leaves
-  ctx.fillStyle = '#32CD32';
-  const leafCount = 3;
-  for (let i = 1; i <= leafCount; i++) {
-    const t = i / (leafCount + 1);
-    const lx = branch.x + (punch.x - branch.x) * t;
-    const ly = branchScreenY + (punchScreenY - 40 - branchScreenY) * t;
-    
-    ctx.beginPath();
-    ctx.ellipse(lx + 8, ly, 8, 5, 0.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
-}
-
-// ============================================
-// UPDATE UI
-// ============================================
-function updateUI() {
-  document.getElementById('score-display').textContent = `🍌 ${score}`;
-  document.getElementById('height-display').textContent = `📏 ${Math.floor(maxHeight / 10)}m`;
-}
-
-// ============================================
-// MAIN GAME LOOP
-// ============================================
-function gameLoop() {
-  // Clear
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  if (gameState === State.MENU) {
-    requestAnimationFrame(gameLoop);
-    return;
-  }
-  
-  // Update
-  if (gameState !== State.GAME_OVER) {
-    updatePhysics();
-    updateKeyboardAim();
-  }
-  updateParticles();
-  
-  // Draw
-  drawBackground();
-  
-  // Draw branches
-  for (const branch of branches) {
-    drawBranch(branch);
-  }
-  
-  // Draw bananas
-  for (const banana of bananas) {
-    drawBanana(banana);
-  }
-  
-  // Draw rope
-  drawRope();
-  
-  // Draw Punch
-  const punchScreenY = canvas.height - (punch.y - cameraY);
-  const isSwinging = gameState === State.SWINGING;
-  drawPunch(punch.x, punchScreenY, 0.7, punch.rotation, punch.expression, isSwinging);
-  
-  // Draw particles
-  drawParticles();
-  
-  // Draw aim indicator
-  drawAimIndicator();
-  
-  // Update UI
-  updateUI();
-  
-  requestAnimationFrame(gameLoop);
 }
 
 // ============================================
 // INIT
 // ============================================
-document.getElementById('start-btn').addEventListener('click', () => {
-  initAudio();
-  document.getElementById('start-screen').classList.add('hidden');
-  resetGame();
-});
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('restart-btn').addEventListener('click', startGame);
 
-document.getElementById('restart-btn').addEventListener('click', () => {
-  resetGame();
-});
-
-// Start loop
-requestAnimationFrame(gameLoop);
-
-console.log('🐵 Fling Punch loaded! Swing your way home!');
+gameLoop();
+console.log('🐵🚀 Fling Punch - Jetpack Jungle loaded!');
 </script>
 </body>
 </html>

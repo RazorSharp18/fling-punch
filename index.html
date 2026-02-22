@@ -8,218 +8,178 @@
   <script src="https://sdk.play.fun"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    
     body {
       overflow: hidden;
       touch-action: none;
       -webkit-touch-callout: none;
       -webkit-user-select: none;
       user-select: none;
-      background: #1a1a2e;
+      background: #87CEEB;
       font-family: 'Segoe UI', system-ui, sans-serif;
     }
-    
     #game-canvas { display: block; }
     
-    #ui-overlay {
+    #ui {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: 15px; left: 15px;
       pointer-events: none;
+      z-index: 10;
     }
+    #score { color: #fff; font-size: 26px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+    #height { color: #FFD700; font-size: 18px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin-top: 5px; }
     
-    #score-display {
-      position: absolute;
-      top: 20px; left: 20px;
-      color: #fff;
-      font-size: 28px;
-      font-weight: bold;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-    }
-    
-    #fuel-bar {
-      position: absolute;
-      top: 60px; left: 20px;
-      width: 150px; height: 20px;
-      background: rgba(0,0,0,0.5);
+    #fuel-container {
+      margin-top: 10px;
+      background: rgba(0,0,0,0.4);
       border-radius: 10px;
-      overflow: hidden;
+      padding: 5px 10px;
+      width: 160px;
     }
-    
-    #fuel-fill {
-      height: 100%;
-      width: 100%;
-      background: linear-gradient(90deg, #00bfff, #00ff88);
+    #fuel-label { color: #fff; font-size: 12px; font-weight: bold; }
+    #fuel-bar { 
+      width: 100%; height: 14px; 
+      background: #333; 
+      border-radius: 7px; 
+      overflow: hidden; 
+      margin-top: 3px;
+    }
+    #fuel-fill { 
+      height: 100%; 
+      background: linear-gradient(90deg, #00BFFF, #00FF88); 
       transition: width 0.1s;
-    }
-    
-    #fuel-label {
-      position: absolute;
-      top: 63px; left: 25px;
-      color: #fff;
-      font-size: 12px;
-      font-weight: bold;
+      border-radius: 7px;
     }
     
     #mobile-controls {
       position: fixed;
-      bottom: 20px;
+      bottom: 30px;
       left: 0; right: 0;
       display: none;
       justify-content: space-between;
-      padding: 0 20px;
-      pointer-events: auto;
+      padding: 0 25px;
+      z-index: 20;
     }
-    
-    .mobile-btn-group {
-      display: flex;
-      gap: 15px;
-    }
-    
-    .mobile-btn {
-      width: 70px;
-      height: 70px;
+    .ctrl-group { display: flex; gap: 15px; }
+    .ctrl-btn {
+      width: 75px; height: 75px;
       border-radius: 50%;
       background: rgba(255,255,255,0.3);
-      border: 3px solid rgba(255,255,255,0.6);
+      border: 3px solid rgba(255,255,255,0.7);
+      font-size: 32px;
+      color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
-      color: #fff;
       -webkit-tap-highlight-color: transparent;
     }
+    .ctrl-btn:active { background: rgba(255,255,255,0.5); transform: scale(0.9); }
+    .ctrl-btn.jump { background: rgba(0,200,255,0.4); border-color: #00C8FF; }
+    .ctrl-btn.shoot { background: rgba(255,150,0,0.4); border-color: #FF9600; }
     
-    .mobile-btn:active {
-      background: rgba(255,255,255,0.5);
-      transform: scale(0.95);
-    }
-    
-    .mobile-btn.jetpack {
-      background: rgba(0,191,255,0.4);
-      border-color: #00bfff;
-    }
-    
-    .mobile-btn.shoot {
-      background: rgba(255,165,0,0.4);
-      border-color: #ffa500;
-    }
-    
-    #game-over {
+    .overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.85);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.5s;
-    }
-    
-    #game-over.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    
-    #game-over h1 { color: #ff6b6b; font-size: 48px; margin-bottom: 20px; }
-    #game-over .stats { color: #fff; font-size: 24px; margin-bottom: 30px; text-align: center; }
-    #game-over .stats span { color: #ffd700; }
-    
-    .game-btn {
-      background: linear-gradient(180deg, #ff7f50 0%, #ff5722 100%);
-      border: none;
-      color: white;
-      padding: 18px 50px;
-      font-size: 26px;
-      font-weight: bold;
-      border-radius: 35px;
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(255,87,34,0.4);
-    }
-    
-    .game-btn:active { transform: scale(0.95); }
-    
-    #start-screen {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(180deg, #87CEEB 0%, #228B22 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 100;
     }
+    #start-screen { background: linear-gradient(180deg, #87CEEB 0%, #228B22 100%); }
+    #game-over { background: rgba(0,0,0,0.85); opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+    #game-over.active { opacity: 1; pointer-events: auto; }
     
-    #start-screen .emoji { font-size: 100px; margin-bottom: 20px; animation: bounce 1s ease-in-out infinite; }
+    .title { font-size: 100px; margin-bottom: 10px; animation: bounce 1s ease-in-out infinite; }
     @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+    h1 { color: #fff; font-size: 48px; text-shadow: 3px 3px 6px rgba(0,0,0,0.3); margin-bottom: 8px; }
+    .subtitle { color: #ffe4b5; font-size: 20px; margin-bottom: 25px; }
+    .stats { color: #fff; font-size: 24px; text-align: center; margin-bottom: 25px; line-height: 1.6; }
+    .stats span { color: #FFD700; font-weight: bold; }
     
-    #start-screen h1 { color: #fff; font-size: 48px; margin-bottom: 10px; text-shadow: 3px 3px 6px rgba(0,0,0,0.3); }
-    #start-screen .subtitle { color: #ffe4b5; font-size: 20px; margin-bottom: 30px; }
-    #start-screen .game-btn { animation: pulse 2s infinite; }
+    .btn {
+      background: linear-gradient(180deg, #FF7F50 0%, #FF5722 100%);
+      border: none;
+      color: #fff;
+      padding: 18px 55px;
+      font-size: 26px;
+      font-weight: bold;
+      border-radius: 35px;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(255,87,34,0.4);
+    }
+    .btn:active { transform: scale(0.95); }
+    #start-screen .btn { animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     
-    #instructions { color: rgba(255,255,255,0.9); font-size: 14px; margin-top: 25px; text-align: center; line-height: 1.8; }
+    .instructions {
+      color: rgba(255,255,255,0.9);
+      font-size: 14px;
+      margin-top: 25px;
+      text-align: center;
+      line-height: 1.8;
+    }
     
     .hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <div id="start-screen">
-    <div class="emoji">🐵🚀</div>
-    <h1>Fling Punch</h1>
-    <div class="subtitle">Jetpack Jungle Adventure!</div>
-    <button id="start-btn" class="game-btn">TAP TO PLAY</button>
-    <div id="instructions">
-      <b>Keyboard:</b> ← → Move | SPACE Jump/Jetpack | X Shoot<br>
-      <b>Mobile:</b> Touch controls appear below<br><br>
-      🍌 Collect bananas | 💀 Avoid enemies | 🚀 Use jetpack to fly!
-    </div>
+
+<div id="start-screen" class="overlay">
+  <div class="title">🐵🚀</div>
+  <h1>Fling Punch</h1>
+  <div class="subtitle">Jetpack Jungle Adventure!</div>
+  <button id="start-btn" class="btn">TAP TO PLAY</button>
+  <div class="instructions">
+    <b>Keyboard:</b> ← → Move | SPACE Jump (hold for jetpack!) | X Shoot<br>
+    <b>Mobile:</b> Touch buttons below<br><br>
+    🍌 Collect bananas | 👾 Shoot enemies | 🚀 Jetpack to fly higher!
   </div>
-  
-  <canvas id="game-canvas"></canvas>
-  
-  <div id="ui-overlay">
-    <div id="score-display">🍌 0</div>
-    <div id="fuel-bar"><div id="fuel-fill"></div></div>
-    <div id="fuel-label">🚀 FUEL</div>
+</div>
+
+<canvas id="game-canvas"></canvas>
+
+<div id="ui">
+  <div id="score">🍌 0</div>
+  <div id="height">📏 0m</div>
+  <div id="fuel-container">
+    <div id="fuel-label">🚀 JETPACK FUEL</div>
+    <div id="fuel-bar"><div id="fuel-fill" style="width:100%"></div></div>
   </div>
-  
-  <div id="mobile-controls">
-    <div class="mobile-btn-group">
-      <button class="mobile-btn" id="btn-left">←</button>
-      <button class="mobile-btn" id="btn-right">→</button>
-    </div>
-    <div class="mobile-btn-group">
-      <button class="mobile-btn shoot" id="btn-shoot">💥</button>
-      <button class="mobile-btn jetpack" id="btn-jump">🚀</button>
-    </div>
+</div>
+
+<div id="mobile-controls">
+  <div class="ctrl-group">
+    <button class="ctrl-btn" id="btn-left">◀</button>
+    <button class="ctrl-btn" id="btn-right">▶</button>
   </div>
-  
-  <div id="game-over">
-    <h1>💔 Game Over!</h1>
-    <div class="stats">
-      Score: <span id="final-score">0</span> 🍌<br>
-      Height: <span id="final-height">0</span>m
-    </div>
-    <button id="restart-btn" class="game-btn">Play Again</button>
+  <div class="ctrl-group">
+    <button class="ctrl-btn shoot" id="btn-shoot">💥</button>
+    <button class="ctrl-btn jump" id="btn-jump">🚀</button>
   </div>
+</div>
+
+<div id="game-over" class="overlay">
+  <h1 style="color:#FF6B6B">💔 Game Over!</h1>
+  <div class="stats">
+    Score: <span id="final-score">0</span> 🍌<br>
+    Height: <span id="final-height">0</span>m
+  </div>
+  <button id="restart-btn" class="btn">Play Again</button>
+</div>
 
 <script>
 // ============================================
 // PLAY FUN SDK
 // ============================================
-let ogp = null;
-let sdkReady = false;
-
+let ogp = null, sdkReady = false;
 if (typeof OpenGameSDK !== 'undefined') {
   ogp = new OpenGameSDK({ ui: { usePointsWidget: true, theme: 'dark' } });
-  ogp.on('OnReady', () => { sdkReady = true; });
+  ogp.on('OnReady', () => sdkReady = true);
   ogp.init({ gameId: 'fling-punch' });
 }
 
 // ============================================
-// CANVAS SETUP
+// CANVAS
 // ============================================
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
@@ -231,7 +191,7 @@ function resize() {
 resize();
 window.addEventListener('resize', resize);
 
-// Show mobile controls on touch devices
+// Mobile controls
 if ('ontouchstart' in window) {
   document.getElementById('mobile-controls').style.display = 'flex';
 }
@@ -245,430 +205,50 @@ let maxHeight = 0;
 let cameraY = 0;
 
 // ============================================
-// PUNCH - THE HERO
+// PUNCH
 // ============================================
 const punch = {
   x: 0, y: 0,
   vx: 0, vy: 0,
-  width: 50, height: 70,
+  width: 50, height: 60,
   onGround: false,
   fuel: 100,
-  maxFuel: 100,
-  facing: 1, // 1 = right, -1 = left
+  facing: 1,
   jetpackOn: false,
   shootCooldown: 0
 };
 
-function drawPunch() {
-  const screenX = punch.x - cameraX;
-  const screenY = canvas.height - (punch.y - cameraY) - punch.height;
-  
-  ctx.save();
-  ctx.translate(screenX + punch.width/2, screenY + punch.height/2);
-  ctx.scale(punch.facing, 1);
-  
-  const s = 0.7;
-  
-  // Jetpack flames
-  if (punch.jetpackOn && punch.fuel > 0) {
-    ctx.fillStyle = '#FF6600';
-    ctx.beginPath();
-    const flameHeight = 20 + Math.random() * 15;
-    ctx.moveTo(-15 * s, 35 * s);
-    ctx.lineTo(-10 * s, 35 * s + flameHeight);
-    ctx.lineTo(-5 * s, 35 * s);
-    ctx.fill();
-    
-    ctx.fillStyle = '#FFFF00';
-    ctx.beginPath();
-    ctx.moveTo(-12 * s, 35 * s);
-    ctx.lineTo(-10 * s, 35 * s + flameHeight * 0.6);
-    ctx.lineTo(-8 * s, 35 * s);
-    ctx.fill();
-  }
-  
-  // Jetpack on back
-  ctx.fillStyle = '#444';
-  ctx.fillRect(-20 * s, -10 * s, 12 * s, 40 * s);
-  ctx.fillStyle = '#00BFFF';
-  ctx.fillRect(-18 * s, -5 * s, 8 * s, 30 * s);
-  
-  // Body
-  ctx.fillStyle = '#A08070';
-  ctx.beginPath();
-  ctx.ellipse(0, 20 * s, 22 * s, 28 * s, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Belly
-  ctx.fillStyle = '#C4B0A0';
-  ctx.beginPath();
-  ctx.ellipse(5 * s, 22 * s, 14 * s, 18 * s, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Head
-  ctx.fillStyle = '#8B7355';
-  ctx.beginPath();
-  ctx.arc(0, -18 * s, 32 * s, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Face
-  ctx.fillStyle = '#FFCDB8';
-  ctx.beginPath();
-  ctx.moveTo(0, 5 * s);
-  ctx.bezierCurveTo(-22 * s, -5 * s, -20 * s, -35 * s, 0, -30 * s);
-  ctx.bezierCurveTo(20 * s, -35 * s, 22 * s, -5 * s, 0, 5 * s);
-  ctx.fill();
-  
-  // Eyes
-  ctx.fillStyle = '#FFF';
-  ctx.beginPath();
-  ctx.ellipse(-10 * s, -20 * s, 8 * s, 10 * s, 0, 0, Math.PI * 2);
-  ctx.ellipse(10 * s, -20 * s, 8 * s, 10 * s, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.arc(-10 * s, -18 * s, 5 * s, 0, Math.PI * 2);
-  ctx.arc(10 * s, -18 * s, 5 * s, 0, Math.PI * 2);
-  ctx.fill();
-  
-  ctx.fillStyle = '#FFF';
-  ctx.beginPath();
-  ctx.arc(-8 * s, -20 * s, 2 * s, 0, Math.PI * 2);
-  ctx.arc(12 * s, -20 * s, 2 * s, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Nose
-  ctx.fillStyle = '#D4A5A5';
-  ctx.beginPath();
-  ctx.ellipse(0, -5 * s, 6 * s, 4 * s, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Smile
-  ctx.strokeStyle = '#8B6969';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(0, -2 * s, 5 * s, 0.1 * Math.PI, 0.9 * Math.PI);
-  ctx.stroke();
-  
-  // Ears
-  ctx.fillStyle = '#8B7355';
-  ctx.beginPath();
-  ctx.ellipse(-30 * s, -18 * s, 10 * s, 12 * s, 0, 0, Math.PI * 2);
-  ctx.ellipse(30 * s, -18 * s, 10 * s, 12 * s, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#FFCDB8';
-  ctx.beginPath();
-  ctx.ellipse(-30 * s, -18 * s, 5 * s, 7 * s, 0, 0, Math.PI * 2);
-  ctx.ellipse(30 * s, -18 * s, 5 * s, 7 * s, 0, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Arms
-  ctx.strokeStyle = '#8B7355';
-  ctx.lineWidth = 10 * s;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(18 * s, 10 * s);
-  ctx.lineTo(35 * s, 25 * s);
-  ctx.stroke();
-  
-  // Legs
-  ctx.beginPath();
-  ctx.moveTo(-8 * s, 45 * s);
-  ctx.lineTo(-12 * s, 60 * s);
-  ctx.moveTo(8 * s, 45 * s);
-  ctx.lineTo(12 * s, 60 * s);
-  ctx.stroke();
-  
-  ctx.restore();
-}
-
 // ============================================
-// PLATFORMS
+// ARRAYS
 // ============================================
-const platforms = [];
-let platformSpawnY = 0;
-
-function spawnPlatform(y, width, x) {
-  platforms.push({
-    x: x !== undefined ? x : Math.random() * (canvas.width - width - 100) + 50,
-    y: y,
-    width: width || 120 + Math.random() * 100,
-    type: Math.random() < 0.1 ? 'moving' : 'static',
-    moveDir: 1,
-    moveSpeed: 1 + Math.random()
-  });
-}
-
-function drawPlatform(p) {
-  const screenX = p.x - cameraX;
-  const screenY = canvas.height - (p.y - cameraY);
-  
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.roundRect(screenX + 5, screenY + 5, p.width, 22, 10);
-  ctx.fill();
-  
-  // Platform
-  const grad = ctx.createLinearGradient(0, screenY - 10, 0, screenY + 15);
-  grad.addColorStop(0, '#8B4513');
-  grad.addColorStop(1, '#654321');
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.roundRect(screenX, screenY - 10, p.width, 22, 10);
-  ctx.fill();
-  
-  // Grass on top
-  ctx.fillStyle = '#228B22';
-  ctx.beginPath();
-  ctx.roundRect(screenX, screenY - 15, p.width, 12, [8, 8, 0, 0]);
-  ctx.fill();
-  
-  // Grass blades
-  ctx.strokeStyle = '#32CD32';
-  ctx.lineWidth = 2;
-  for (let i = 0; i < p.width; i += 15) {
-    const h = 5 + Math.sin(i + Date.now() * 0.002) * 3;
-    ctx.beginPath();
-    ctx.moveTo(screenX + i + 7, screenY - 15);
-    ctx.lineTo(screenX + i + 7 + Math.sin(Date.now() * 0.003 + i) * 2, screenY - 15 - h);
-    ctx.stroke();
-  }
-}
-
-// ============================================
-// BANANAS
-// ============================================
-const bananas = [];
-
-function spawnBanana(x, y) {
-  bananas.push({ x, y, collected: false, rotation: Math.random() * Math.PI * 2 });
-}
-
-function drawBanana(b) {
-  if (b.collected) return;
-  
-  const screenX = b.x - cameraX;
-  const screenY = canvas.height - (b.y - cameraY);
-  
-  ctx.save();
-  ctx.translate(screenX, screenY);
-  ctx.rotate(Math.sin(Date.now() * 0.003 + b.rotation) * 0.2);
-  
-  // Glow
-  ctx.shadowColor = '#FFD700';
-  ctx.shadowBlur = 15;
-  
-  ctx.fillStyle = '#FFD700';
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 12, 20, 0.3, 0, Math.PI * 2);
-  ctx.fill();
-  
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = '#8B4513';
-  ctx.fillRect(-2, -22, 4, 6);
-  
-  ctx.restore();
-}
-
-// ============================================
-// ENEMIES
-// ============================================
-const enemies = [];
-
-function spawnEnemy(x, y) {
-  enemies.push({
-    x, y,
-    vx: (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random()),
-    width: 40, height: 40,
-    alive: true
-  });
-}
-
-function drawEnemy(e) {
-  if (!e.alive) return;
-  
-  const screenX = e.x - cameraX;
-  const screenY = canvas.height - (e.y - cameraY) - e.height;
-  
-  // Evil monkey
-  ctx.fillStyle = '#4a3728';
-  ctx.beginPath();
-  ctx.arc(screenX + 20, screenY + 20, 20, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Red eyes
-  ctx.fillStyle = '#FF0000';
-  ctx.beginPath();
-  ctx.arc(screenX + 14, screenY + 16, 5, 0, Math.PI * 2);
-  ctx.arc(screenX + 26, screenY + 16, 5, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Angry brows
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(screenX + 8, screenY + 10);
-  ctx.lineTo(screenX + 18, screenY + 14);
-  ctx.moveTo(screenX + 32, screenY + 10);
-  ctx.lineTo(screenX + 22, screenY + 14);
-  ctx.stroke();
-}
-
-// ============================================
-// PROJECTILES
-// ============================================
-const projectiles = [];
-
-function shoot() {
-  if (punch.shootCooldown > 0) return;
-  
-  projectiles.push({
-    x: punch.x + punch.width/2 + punch.facing * 20,
-    y: punch.y + 30,
-    vx: punch.facing * 15,
-    vy: 0
-  });
-  
-  punch.shootCooldown = 15;
-  playSound('shoot');
-}
-
-function drawProjectile(p) {
-  const screenX = p.x - cameraX;
-  const screenY = canvas.height - (p.y - cameraY);
-  
-  // Banana peel projectile
-  ctx.fillStyle = '#FFD700';
-  ctx.save();
-  ctx.translate(screenX, screenY);
-  ctx.rotate(Date.now() * 0.02);
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 8, 15, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-// ============================================
-// PARTICLES
-// ============================================
-const particles = [];
-
-function emitParticles(x, y, color, count) {
-  for (let i = 0; i < count; i++) {
-    particles.push({
-      x, y,
-      vx: (Math.random() - 0.5) * 8,
-      vy: Math.random() * -6 - 2,
-      life: 1,
-      color,
-      size: 3 + Math.random() * 5
-    });
-  }
-}
-
-function updateParticles() {
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.x += p.vx;
-    p.vy += 0.3;
-    p.y += p.vy;
-    p.life -= 0.02;
-    if (p.life <= 0) particles.splice(i, 1);
-  }
-}
-
-function drawParticles() {
-  for (const p of particles) {
-    ctx.globalAlpha = p.life;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-}
-
-// ============================================
-// BACKGROUND
-// ============================================
-let cameraX = 0;
-
-function drawBackground() {
-  // Sky
-  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  const heightFactor = Math.min(maxHeight / 2000, 1);
-  grad.addColorStop(0, `hsl(${200 - heightFactor * 30}, 70%, ${70 - heightFactor * 30}%)`);
-  grad.addColorStop(1, `hsl(${120 - heightFactor * 20}, 50%, ${60 - heightFactor * 20}%)`);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  // Sun
-  ctx.fillStyle = '#FFF8DC';
-  ctx.shadowColor = '#FFD700';
-  ctx.shadowBlur = 40;
-  ctx.beginPath();
-  ctx.arc(canvas.width - 100, 80, 35, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  
-  // Clouds
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  for (let i = 0; i < 6; i++) {
-    const x = ((i * 200 + Date.now() * 0.01 - cameraX * 0.1) % (canvas.width + 200)) - 100;
-    const y = 50 + (i % 3) * 60;
-    ctx.beginPath();
-    ctx.arc(x, y, 25, 0, Math.PI * 2);
-    ctx.arc(x + 20, y - 10, 20, 0, Math.PI * 2);
-    ctx.arc(x + 40, y, 25, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  
-  // Distant trees
-  ctx.fillStyle = '#1e4d1e';
-  for (let i = 0; i < 15; i++) {
-    const x = ((i * 150 - cameraX * 0.2 - cameraY * 0.05) % (canvas.width + 200)) - 50;
-    const h = 60 + Math.sin(i * 2) * 30;
-    ctx.beginPath();
-    ctx.moveTo(x, canvas.height);
-    ctx.lineTo(x + 30, canvas.height - h);
-    ctx.lineTo(x + 60, canvas.height);
-    ctx.fill();
-  }
-}
+let platforms = [];
+let bananas = [];
+let enemies = [];
+let projectiles = [];
+let particles = [];
 
 // ============================================
 // INPUT
 // ============================================
 const keys = {};
+const touch = { left: false, right: false, jump: false, shoot: false };
 
-document.addEventListener('keydown', e => {
-  keys[e.code] = true;
-  if (e.code === 'Space') e.preventDefault();
-});
+document.addEventListener('keydown', e => { keys[e.code] = true; if(e.code === 'Space') e.preventDefault(); });
 document.addEventListener('keyup', e => keys[e.code] = false);
 
-// Mobile controls
-const mobileState = { left: false, right: false, jump: false, shoot: false };
-
-function setupMobileButton(id, state) {
+['btn-left', 'btn-right', 'btn-jump', 'btn-shoot'].forEach(id => {
   const btn = document.getElementById(id);
-  btn.addEventListener('touchstart', e => { e.preventDefault(); mobileState[state] = true; });
-  btn.addEventListener('touchend', e => { e.preventDefault(); mobileState[state] = false; });
-}
+  const key = id.split('-')[1];
+  btn.addEventListener('touchstart', e => { e.preventDefault(); touch[key] = true; }, {passive: false});
+  btn.addEventListener('touchend', e => { e.preventDefault(); touch[key] = false; }, {passive: false});
+});
 
-setupMobileButton('btn-left', 'left');
-setupMobileButton('btn-right', 'right');
-setupMobileButton('btn-jump', 'jump');
-setupMobileButton('btn-shoot', 'shoot');
-
-function isPressed(action) {
+function pressed(action) {
   switch(action) {
-    case 'left': return keys['ArrowLeft'] || keys['KeyA'] || mobileState.left;
-    case 'right': return keys['ArrowRight'] || keys['KeyD'] || mobileState.right;
-    case 'jump': return keys['Space'] || keys['ArrowUp'] || keys['KeyW'] || mobileState.jump;
-    case 'shoot': return keys['KeyX'] || keys['KeyZ'] || mobileState.shoot;
+    case 'left': return keys['ArrowLeft'] || keys['KeyA'] || touch.left;
+    case 'right': return keys['ArrowRight'] || keys['KeyD'] || touch.right;
+    case 'jump': return keys['Space'] || keys['ArrowUp'] || keys['KeyW'] || touch.jump;
+    case 'shoot': return keys['KeyX'] || keys['KeyZ'] || touch.shoot;
   }
 }
 
@@ -676,277 +256,554 @@ function isPressed(action) {
 // AUDIO
 // ============================================
 let audioCtx = null;
+function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
 
-function initAudio() {
-  if (audioCtx) return;
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
-
-function playSound(type) {
+function sound(type) {
   if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  const now = audioCtx.currentTime;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.connect(g); g.connect(audioCtx.destination);
+  const t = audioCtx.currentTime;
   
-  switch(type) {
-    case 'jump':
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(300, now);
-      osc.frequency.exponentialRampToValueAtTime(500, now + 0.1);
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      osc.start(now); osc.stop(now + 0.15);
-      break;
-    case 'jetpack':
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(100 + Math.random() * 50, now);
-      gain.gain.setValueAtTime(0.05, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
-      osc.start(now); osc.stop(now + 0.05);
-      break;
-    case 'shoot':
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(800, now);
-      osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
-      gain.gain.setValueAtTime(0.1, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-      osc.start(now); osc.stop(now + 0.1);
-      break;
-    case 'collect':
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(523, now);
-      osc.frequency.setValueAtTime(659, now + 0.07);
-      osc.frequency.setValueAtTime(784, now + 0.14);
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-      osc.start(now); osc.stop(now + 0.25);
-      break;
-    case 'hit':
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(200, now);
-      osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
-      gain.gain.setValueAtTime(0.15, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-      osc.start(now); osc.stop(now + 0.3);
-      break;
-    case 'explode':
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(150, now);
-      osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-      osc.start(now); osc.stop(now + 0.2);
-      break;
+  if (type === 'jump') {
+    o.type = 'sine'; o.frequency.setValueAtTime(400, t); o.frequency.exponentialRampToValueAtTime(600, t+0.1);
+    g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.01, t+0.12);
+    o.start(t); o.stop(t+0.12);
+  } else if (type === 'jet') {
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(80+Math.random()*40, t);
+    g.gain.setValueAtTime(0.06, t); g.gain.exponentialRampToValueAtTime(0.01, t+0.04);
+    o.start(t); o.stop(t+0.04);
+  } else if (type === 'shoot') {
+    o.type = 'square'; o.frequency.setValueAtTime(600, t); o.frequency.exponentialRampToValueAtTime(150, t+0.1);
+    g.gain.setValueAtTime(0.1, t); g.gain.exponentialRampToValueAtTime(0.01, t+0.1);
+    o.start(t); o.stop(t+0.1);
+  } else if (type === 'coin') {
+    o.type = 'sine'; o.frequency.setValueAtTime(880, t); o.frequency.setValueAtTime(1100, t+0.08);
+    g.gain.setValueAtTime(0.15, t); g.gain.exponentialRampToValueAtTime(0.01, t+0.15);
+    o.start(t); o.stop(t+0.15);
+  } else if (type === 'boom') {
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(40, t+0.15);
+    g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.01, t+0.15);
+    o.start(t); o.stop(t+0.15);
+  } else if (type === 'die') {
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(80, t+0.4);
+    g.gain.setValueAtTime(0.15, t); g.gain.exponentialRampToValueAtTime(0.01, t+0.4);
+    o.start(t); o.stop(t+0.4);
   }
 }
 
 // ============================================
-// PHYSICS & GAME LOGIC
+// PARTICLES
 // ============================================
-const GRAVITY = 0.5;
-const JUMP_FORCE = -12;
-const MOVE_SPEED = 5;
-const JETPACK_FORCE = -0.8;
+function emit(x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    particles.push({
+      x, y, vx: (Math.random()-0.5)*8, vy: -Math.random()*6-2,
+      life: 1, color, size: 3+Math.random()*4
+    });
+  }
+}
+
+// ============================================
+// SPAWN FUNCTIONS
+// ============================================
+let nextPlatformY = 0;
+
+function spawnPlatform(y, w, px) {
+  const width = w || (100 + Math.random() * 120);
+  const x = px !== undefined ? px : (50 + Math.random() * (canvas.width - width - 100));
+  platforms.push({ x, y, width, type: Math.random() < 0.08 ? 'move' : 'static', dir: 1, speed: 1+Math.random() });
+}
+
+function spawnBanana(x, y) { bananas.push({ x, y, got: false }); }
+
+function spawnEnemy(x, y) {
+  enemies.push({ x, y, vx: (Math.random()>0.5?1:-1)*(1.5+Math.random()), w: 45, h: 45, alive: true });
+}
+
+// ============================================
+// DRAW FUNCTIONS
+// ============================================
+function drawBG() {
+  // Sky gradient
+  const hf = Math.min(maxHeight / 3000, 1);
+  const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  g.addColorStop(0, `hsl(${200-hf*50}, ${70-hf*20}%, ${75-hf*35}%)`);
+  g.addColorStop(1, `hsl(${150-hf*30}, ${60-hf*20}%, ${55-hf*25}%)`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Sun
+  ctx.fillStyle = '#FFFACD';
+  ctx.shadowColor = '#FFD700';
+  ctx.shadowBlur = 40;
+  ctx.beginPath();
+  ctx.arc(canvas.width - 80, 70, 35, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  
+  // Clouds
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  for (let i = 0; i < 5; i++) {
+    const cx = ((i*220 + Date.now()*0.008) % (canvas.width+200)) - 80;
+    const cy = 40 + (i%3)*50;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 22, 0, Math.PI*2);
+    ctx.arc(cx+18, cy-8, 18, 0, Math.PI*2);
+    ctx.arc(cx+36, cy, 22, 0, Math.PI*2);
+    ctx.fill();
+  }
+  
+  // Trees in back
+  ctx.fillStyle = '#1B5E20';
+  for (let i = 0; i < 12; i++) {
+    const tx = ((i*130 - cameraY*0.05) % (canvas.width+150)) - 60;
+    const th = 70 + Math.sin(i*1.8)*25;
+    ctx.beginPath();
+    ctx.moveTo(tx, canvas.height);
+    ctx.lineTo(tx+35, canvas.height-th);
+    ctx.lineTo(tx+70, canvas.height);
+    ctx.fill();
+  }
+}
+
+function drawPlatform(p) {
+  const sx = p.x;
+  const sy = canvas.height - (p.y - cameraY);
+  
+  if (sy < -30 || sy > canvas.height + 30) return;
+  
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.roundRect(sx+4, sy+4, p.width, 20, 8);
+  ctx.fill();
+  
+  // Platform body
+  const pg = ctx.createLinearGradient(sx, sy-5, sx, sy+18);
+  pg.addColorStop(0, '#8B5A2B');
+  pg.addColorStop(1, '#5D3A1A');
+  ctx.fillStyle = pg;
+  ctx.beginPath();
+  ctx.roundRect(sx, sy-5, p.width, 22, 8);
+  ctx.fill();
+  
+  // Grass top
+  ctx.fillStyle = '#2E7D32';
+  ctx.beginPath();
+  ctx.roundRect(sx, sy-10, p.width, 12, [6,6,0,0]);
+  ctx.fill();
+  
+  // Grass blades
+  ctx.strokeStyle = '#4CAF50';
+  ctx.lineWidth = 2;
+  for (let i = 8; i < p.width-8; i += 12) {
+    const bh = 4 + Math.sin(Date.now()*0.004+i)*2;
+    ctx.beginPath();
+    ctx.moveTo(sx+i, sy-10);
+    ctx.lineTo(sx+i+Math.sin(Date.now()*0.003+i)*2, sy-10-bh);
+    ctx.stroke();
+  }
+}
+
+function drawPunch() {
+  const sx = punch.x;
+  const sy = canvas.height - (punch.y - cameraY) - punch.height;
+  
+  ctx.save();
+  ctx.translate(sx + punch.width/2, sy + punch.height/2);
+  ctx.scale(punch.facing, 1);
+  
+  // Jetpack flame
+  if (punch.jetpackOn && punch.fuel > 0) {
+    const fh = 15 + Math.random()*12;
+    ctx.fillStyle = '#FF6600';
+    ctx.beginPath();
+    ctx.moveTo(-12, 30);
+    ctx.lineTo(-8, 30+fh);
+    ctx.lineTo(-4, 30);
+    ctx.fill();
+    ctx.fillStyle = '#FFFF00';
+    ctx.beginPath();
+    ctx.moveTo(-10, 30);
+    ctx.lineTo(-8, 30+fh*0.6);
+    ctx.lineTo(-6, 30);
+    ctx.fill();
+  }
+  
+  // Jetpack
+  ctx.fillStyle = '#455A64';
+  ctx.fillRect(-16, -5, 10, 35);
+  ctx.fillStyle = '#00BCD4';
+  ctx.fillRect(-14, 0, 6, 25);
+  
+  // Body
+  ctx.fillStyle = '#8D6E63';
+  ctx.beginPath();
+  ctx.ellipse(0, 18, 18, 24, 0, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Belly
+  ctx.fillStyle = '#BCAAA4';
+  ctx.beginPath();
+  ctx.ellipse(4, 20, 11, 16, 0, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Head
+  ctx.fillStyle = '#795548';
+  ctx.beginPath();
+  ctx.arc(0, -12, 26, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Face
+  ctx.fillStyle = '#FFCCBC';
+  ctx.beginPath();
+  ctx.moveTo(0, 8);
+  ctx.bezierCurveTo(-18, 0, -16, -28, 0, -24);
+  ctx.bezierCurveTo(16, -28, 18, 0, 0, 8);
+  ctx.fill();
+  
+  // Eyes
+  ctx.fillStyle = '#FFF';
+  ctx.beginPath();
+  ctx.ellipse(-8, -14, 7, 9, 0, 0, Math.PI*2);
+  ctx.ellipse(8, -14, 7, 9, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(-8, -12, 4, 0, Math.PI*2);
+  ctx.arc(8, -12, 4, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#FFF';
+  ctx.beginPath();
+  ctx.arc(-6, -14, 2, 0, Math.PI*2);
+  ctx.arc(10, -14, 2, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Nose & mouth
+  ctx.fillStyle = '#D7CCC8';
+  ctx.beginPath();
+  ctx.ellipse(0, -2, 5, 3, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#6D4C41';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(0, 2, 4, 0.1*Math.PI, 0.9*Math.PI);
+  ctx.stroke();
+  
+  // Ears
+  ctx.fillStyle = '#795548';
+  ctx.beginPath();
+  ctx.ellipse(-24, -10, 8, 10, 0, 0, Math.PI*2);
+  ctx.ellipse(24, -10, 8, 10, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle = '#FFCCBC';
+  ctx.beginPath();
+  ctx.ellipse(-24, -10, 4, 6, 0, 0, Math.PI*2);
+  ctx.ellipse(24, -10, 4, 6, 0, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Arm
+  ctx.strokeStyle = '#795548';
+  ctx.lineWidth = 8;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(14, 8);
+  ctx.lineTo(28, 22);
+  ctx.stroke();
+  
+  // Legs
+  ctx.beginPath();
+  ctx.moveTo(-6, 40);
+  ctx.lineTo(-10, 52);
+  ctx.moveTo(6, 40);
+  ctx.lineTo(10, 52);
+  ctx.stroke();
+  
+  ctx.restore();
+}
+
+function drawBanana(b) {
+  if (b.got) return;
+  const sx = b.x;
+  const sy = canvas.height - (b.y - cameraY);
+  
+  if (sy < -30 || sy > canvas.height + 30) return;
+  
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(Math.sin(Date.now()*0.004)*0.15);
+  
+  ctx.shadowColor = '#FFD700';
+  ctx.shadowBlur = 12;
+  ctx.fillStyle = '#FFD700';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 10, 18, 0.3, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  
+  ctx.fillStyle = '#5D4037';
+  ctx.fillRect(-2, -20, 4, 5);
+  
+  ctx.restore();
+}
+
+function drawEnemy(e) {
+  if (!e.alive) return;
+  const sx = e.x;
+  const sy = canvas.height - (e.y - cameraY) - e.h;
+  
+  if (sy < -50 || sy > canvas.height + 50) return;
+  
+  // Body
+  ctx.fillStyle = '#3E2723';
+  ctx.beginPath();
+  ctx.arc(sx + e.w/2, sy + e.h/2, e.w/2, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Red eyes
+  ctx.fillStyle = '#F44336';
+  ctx.beginPath();
+  ctx.arc(sx + e.w*0.35, sy + e.h*0.4, 6, 0, Math.PI*2);
+  ctx.arc(sx + e.w*0.65, sy + e.h*0.4, 6, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Angry brows
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(sx + e.w*0.2, sy + e.h*0.25);
+  ctx.lineTo(sx + e.w*0.42, sy + e.h*0.32);
+  ctx.moveTo(sx + e.w*0.8, sy + e.h*0.25);
+  ctx.lineTo(sx + e.w*0.58, sy + e.h*0.32);
+  ctx.stroke();
+}
+
+function drawProjectile(p) {
+  const sx = p.x;
+  const sy = canvas.height - (p.y - cameraY);
+  
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(Date.now() * 0.02);
+  ctx.fillStyle = '#FFEB3B';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 6, 12, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, canvas.height - (p.y - cameraY), p.size, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ============================================
+// UPDATE
+// ============================================
+const GRAVITY = 0.55;
+const JUMP_VEL = 14;
+const MOVE_SPD = 6;
+const JET_POWER = 0.7;
 
 function update() {
   if (!gameRunning) return;
   
-  // Input
-  if (isPressed('left')) {
-    punch.vx = -MOVE_SPEED;
-    punch.facing = -1;
-  } else if (isPressed('right')) {
-    punch.vx = MOVE_SPEED;
-    punch.facing = 1;
-  } else {
-    punch.vx *= 0.8;
-  }
+  // Movement
+  if (pressed('left')) { punch.vx = -MOVE_SPD; punch.facing = -1; }
+  else if (pressed('right')) { punch.vx = MOVE_SPD; punch.facing = 1; }
+  else punch.vx *= 0.85;
   
-  // Jump / Jetpack
+  // Jump & Jetpack
   punch.jetpackOn = false;
-  if (isPressed('jump')) {
+  if (pressed('jump')) {
     if (punch.onGround) {
-      punch.vy = JUMP_FORCE;
+      punch.vy = JUMP_VEL;
       punch.onGround = false;
-      playSound('jump');
-    } else if (punch.fuel > 0) {
-      punch.vy += JETPACK_FORCE;
-      punch.vy = Math.max(punch.vy, -8);
-      punch.fuel -= 0.5;
+      sound('jump');
+    } else if (punch.fuel > 0 && punch.vy < 10) {
+      punch.vy += JET_POWER;
+      if (punch.vy > 10) punch.vy = 10;
+      punch.fuel -= 0.6;
       punch.jetpackOn = true;
-      if (Math.random() < 0.3) playSound('jetpack');
+      if (Math.random() < 0.25) sound('jet');
     }
   }
   
   // Shoot
-  if (isPressed('shoot')) shoot();
+  if (pressed('shoot') && punch.shootCooldown <= 0) {
+    projectiles.push({
+      x: punch.x + punch.width/2 + punch.facing * 25,
+      y: punch.y + 30,
+      vx: punch.facing * 14
+    });
+    punch.shootCooldown = 18;
+    sound('shoot');
+  }
   if (punch.shootCooldown > 0) punch.shootCooldown--;
   
-  // Refuel when on ground
-  if (punch.onGround) {
-    punch.fuel = Math.min(punch.maxFuel, punch.fuel + 0.5);
-  }
+  // Refuel on ground
+  if (punch.onGround && punch.fuel < 100) punch.fuel += 0.8;
   
-  // Physics
-  punch.vy += GRAVITY;
+  // Gravity
+  punch.vy -= GRAVITY;
+  
+  // Apply velocity
   punch.x += punch.vx;
   punch.y += punch.vy;
   
-  // Platform collision
+  // Platform collision (from above, landing on top)
   punch.onGround = false;
   for (const p of platforms) {
-    // Moving platforms
-    if (p.type === 'moving') {
-      p.x += p.moveDir * p.moveSpeed;
-      if (p.x < 50 || p.x + p.width > canvas.width - 50) p.moveDir *= -1;
+    // Moving platform
+    if (p.type === 'move') {
+      p.x += p.dir * p.speed;
+      if (p.x < 30 || p.x + p.width > canvas.width - 30) p.dir *= -1;
     }
     
-    // Collision check
-    if (punch.vy >= 0 &&
-        punch.x + punch.width > p.x &&
-        punch.x < p.x + p.width &&
-        punch.y + punch.vy <= p.y + 15 &&
-        punch.y >= p.y - 10) {
-      punch.y = p.y;
-      punch.vy = 0;
-      punch.onGround = true;
-      if (p.type === 'moving') punch.x += p.moveDir * p.moveSpeed;
+    // Check if landing on platform
+    if (punch.vy <= 0) { // Falling or stationary
+      const pTop = p.y;
+      const wasAbove = (punch.y - punch.vy) >= pTop;
+      const nowBelow = punch.y < pTop + 15;
+      const xOverlap = punch.x + punch.width > p.x && punch.x < p.x + p.width;
+      
+      if (wasAbove && nowBelow && xOverlap && punch.y >= pTop - 5) {
+        punch.y = pTop;
+        punch.vy = 0;
+        punch.onGround = true;
+        if (p.type === 'move') punch.x += p.dir * p.speed;
+      }
     }
   }
   
-  // Ground
-  if (punch.y < 0) {
+  // Ground collision
+  if (punch.y <= 0) {
     punch.y = 0;
     punch.vy = 0;
     punch.onGround = true;
   }
   
   // Screen bounds
-  punch.x = Math.max(0, Math.min(canvas.width - punch.width, punch.x));
+  if (punch.x < 0) punch.x = 0;
+  if (punch.x > canvas.width - punch.width) punch.x = canvas.width - punch.width;
   
-  // Update max height
+  // Max height
   if (punch.y > maxHeight) {
-    const heightGain = Math.floor((punch.y - maxHeight) / 20);
-    if (heightGain > 0 && sdkReady && ogp) ogp.addPoints(heightGain);
+    const gain = Math.floor((punch.y - maxHeight) / 15);
+    if (gain > 0 && sdkReady && ogp) ogp.addPoints(gain);
     maxHeight = punch.y;
   }
   
   // Camera
-  cameraY = Math.max(0, punch.y - canvas.height * 0.4);
-  cameraX = 0;
+  const targetCam = punch.y - canvas.height * 0.35;
+  cameraY += (targetCam - cameraY) * 0.1;
+  if (cameraY < 0) cameraY = 0;
   
-  // Spawn platforms
-  while (platformSpawnY < cameraY + canvas.height + 300) {
-    spawnPlatform(platformSpawnY);
+  // Spawn platforms ahead
+  while (nextPlatformY < cameraY + canvas.height + 400) {
+    spawnPlatform(nextPlatformY);
     
-    // Spawn banana on some platforms
-    if (Math.random() < 0.4) {
-      const lastP = platforms[platforms.length - 1];
-      spawnBanana(lastP.x + lastP.width / 2, lastP.y + 40);
+    // Banana
+    if (Math.random() < 0.35) {
+      const lp = platforms[platforms.length-1];
+      spawnBanana(lp.x + lp.width/2, lp.y + 35);
     }
     
-    // Spawn enemy occasionally
-    if (Math.random() < 0.15 && platformSpawnY > 300) {
-      const lastP = platforms[platforms.length - 1];
-      spawnEnemy(lastP.x + 20, lastP.y + 10);
+    // Enemy
+    if (Math.random() < 0.12 && nextPlatformY > 250) {
+      const lp = platforms[platforms.length-1];
+      spawnEnemy(lp.x + 15, lp.y + 5);
     }
     
-    platformSpawnY += 80 + Math.random() * 60;
+    nextPlatformY += 70 + Math.random() * 50;
   }
   
   // Update enemies
   for (const e of enemies) {
     if (!e.alive) continue;
-    
     e.x += e.vx;
     
-    // Bounce off edges
-    const platform = platforms.find(p => 
-      e.y >= p.y && e.y <= p.y + 20 &&
-      e.x + e.width > p.x && e.x < p.x + p.width
-    );
-    if (platform) {
-      if (e.x < platform.x || e.x + e.width > platform.x + platform.width) {
-        e.vx *= -1;
-      }
+    // Find platform
+    const ep = platforms.find(p => e.y >= p.y-5 && e.y <= p.y+15 && e.x+e.w > p.x && e.x < p.x+p.width);
+    if (ep) {
+      if (e.x < ep.x + 5) { e.x = ep.x + 5; e.vx *= -1; }
+      if (e.x + e.w > ep.x + ep.width - 5) { e.x = ep.x + ep.width - e.w - 5; e.vx *= -1; }
     }
     
     // Hit player
-    if (punch.x < e.x + e.width &&
-        punch.x + punch.width > e.x &&
-        punch.y < e.y + e.height &&
-        punch.y + punch.height > e.y) {
-      gameOver();
+    if (punch.x < e.x + e.w && punch.x + punch.width > e.x &&
+        punch.y < e.y + e.h && punch.y + punch.height > e.y) {
+      die();
       return;
     }
   }
   
   // Update projectiles
   for (let i = projectiles.length - 1; i >= 0; i--) {
-    const p = projectiles[i];
-    p.x += p.vx;
-    p.y += p.vy;
+    const pr = projectiles[i];
+    pr.x += pr.vx;
     
     // Hit enemy
     for (const e of enemies) {
       if (!e.alive) continue;
-      if (p.x > e.x && p.x < e.x + e.width &&
-          p.y > e.y && p.y < e.y + e.height) {
+      if (pr.x > e.x && pr.x < e.x + e.w && pr.y > e.y && pr.y < e.y + e.h) {
         e.alive = false;
         score += 100;
         if (sdkReady && ogp) ogp.addPoints(100);
-        playSound('explode');
-        
-        const screenX = e.x - cameraX;
-        const screenY = canvas.height - (e.y - cameraY);
-        emitParticles(screenX + 20, screenY - 20, '#FF6600', 15);
-        
+        sound('boom');
+        emit(e.x + e.w/2, e.y + e.h/2, '#FF5722', 12);
         projectiles.splice(i, 1);
         break;
       }
     }
     
-    // Remove if off screen
-    if (p.x < cameraX - 100 || p.x > cameraX + canvas.width + 100) {
-      projectiles.splice(i, 1);
-    }
+    // Off screen
+    if (pr.x < -50 || pr.x > canvas.width + 50) projectiles.splice(i, 1);
   }
   
   // Collect bananas
   for (const b of bananas) {
-    if (b.collected) continue;
-    
+    if (b.got) continue;
     const dx = punch.x + punch.width/2 - b.x;
     const dy = punch.y + punch.height/2 - b.y;
-    if (Math.sqrt(dx*dx + dy*dy) < 40) {
-      b.collected = true;
+    if (Math.sqrt(dx*dx + dy*dy) < 35) {
+      b.got = true;
       score += 50;
       if (sdkReady && ogp) ogp.addPoints(50);
-      playSound('collect');
-      
-      const screenX = b.x - cameraX;
-      const screenY = canvas.height - (b.y - cameraY);
-      emitParticles(screenX, screenY, '#FFD700', 10);
+      sound('coin');
+      emit(b.x, b.y, '#FFD700', 10);
     }
   }
   
   // Cleanup
-  platforms.filter(p => p.y > cameraY - 200);
-  bananas.filter(b => b.y > cameraY - 200);
-  enemies.filter(e => e.y > cameraY - 200);
+  platforms = platforms.filter(p => p.y > cameraY - 150);
+  bananas = bananas.filter(b => b.y > cameraY - 150);
+  enemies = enemies.filter(e => e.y > cameraY - 150);
   
-  // Fall death
-  if (punch.y < cameraY - 100) {
-    gameOver();
+  // Particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.vy -= 0.15;
+    p.y += p.vy;
+    p.life -= 0.025;
+    if (p.life <= 0) particles.splice(i, 1);
   }
   
-  updateParticles();
+  // Fall death
+  if (punch.y < cameraY - 120) die();
   
   // Update UI
-  document.getElementById('score-display').textContent = `🍌 ${score}`;
-  document.getElementById('fuel-fill').style.width = `${punch.fuel}%`;
+  document.getElementById('score').textContent = `🍌 ${score}`;
+  document.getElementById('height').textContent = `📏 ${Math.floor(maxHeight/10)}m`;
+  document.getElementById('fuel-fill').style.width = `${Math.max(0, punch.fuel)}%`;
 }
 
 // ============================================
@@ -954,14 +811,11 @@ function update() {
 // ============================================
 function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  drawBackground();
-  
+  drawBG();
   for (const p of platforms) drawPlatform(p);
   for (const b of bananas) drawBanana(b);
   for (const e of enemies) drawEnemy(e);
-  for (const p of projectiles) drawProjectile(p);
-  
+  for (const pr of projectiles) drawProjectile(pr);
   drawPunch();
   drawParticles();
 }
@@ -969,73 +823,73 @@ function render() {
 // ============================================
 // GAME LOOP
 // ============================================
-function gameLoop() {
+function loop() {
   update();
   render();
-  requestAnimationFrame(gameLoop);
+  requestAnimationFrame(loop);
 }
 
 // ============================================
-// GAME CONTROL
+// START / DIE
 // ============================================
-function startGame() {
+function start() {
   initAudio();
   
   score = 0;
   maxHeight = 0;
   cameraY = 0;
-  platformSpawnY = 100;
+  nextPlatformY = 100;
   
-  punch.x = canvas.width / 2 - 25;
-  punch.y = 0;
+  punch.x = canvas.width/2 - 25;
+  punch.y = 50;
   punch.vx = 0;
   punch.vy = 0;
   punch.fuel = 100;
   punch.facing = 1;
-  punch.onGround = true;
+  punch.onGround = false;
+  punch.shootCooldown = 0;
   
-  platforms.length = 0;
-  bananas.length = 0;
-  enemies.length = 0;
-  projectiles.length = 0;
-  particles.length = 0;
+  platforms = [];
+  bananas = [];
+  enemies = [];
+  projectiles = [];
+  particles = [];
   
-  // Starting platform
-  spawnPlatform(0, canvas.width, 0);
+  // Ground
+  spawnPlatform(0, canvas.width - 20, 10);
   
-  // Initial platforms
-  for (let y = 100; y < 600; y += 80 + Math.random() * 60) {
+  // Starting platforms
+  for (let y = 100; y < 500; y += 70 + Math.random()*40) {
     spawnPlatform(y);
-    platformSpawnY = y + 100;
+    nextPlatformY = y + 100;
   }
   
   document.getElementById('start-screen').classList.add('hidden');
   document.getElementById('game-over').classList.remove('active');
-  
   gameRunning = true;
 }
 
-async function gameOver() {
+async function die() {
   gameRunning = false;
-  playSound('hit');
+  sound('die');
   
   if (sdkReady && ogp && score > 0) {
     try { await ogp.endGame(); } catch(e) {}
   }
   
   document.getElementById('final-score').textContent = score;
-  document.getElementById('final-height').textContent = Math.floor(maxHeight / 10);
+  document.getElementById('final-height').textContent = Math.floor(maxHeight/10);
   document.getElementById('game-over').classList.add('active');
 }
 
 // ============================================
 // INIT
 // ============================================
-document.getElementById('start-btn').addEventListener('click', startGame);
-document.getElementById('restart-btn').addEventListener('click', startGame);
+document.getElementById('start-btn').addEventListener('click', start);
+document.getElementById('restart-btn').addEventListener('click', start);
 
-gameLoop();
-console.log('🐵🚀 Fling Punch - Jetpack Jungle loaded!');
+loop();
+console.log('🐵🚀 Fling Punch loaded!');
 </script>
 </body>
 </html>

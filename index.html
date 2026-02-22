@@ -196,7 +196,8 @@
     <div class="subtitle">Swing Your Way Home!</div>
     <button id="start-btn" class="game-btn">TAP TO PLAY</button>
     <div id="instructions">
-      Drag to aim • Release to fling<br>
+      <b>Mouse/Touch:</b> Drag to aim, release to fling<br>
+      <b>Keyboard:</b> Arrow keys to aim, SPACE to launch<br>
       Grab branches • Collect bananas 🍌
     </div>
   </div>
@@ -835,6 +836,11 @@ let isDragging = false;
 let dragStart = { x: 0, y: 0 };
 let dragCurrent = { x: 0, y: 0 };
 
+// Keyboard controls
+let keyboardAim = { angle: Math.PI * 0.75, power: 0.7 }; // Default: up-left
+let keysPressed = {};
+let usingKeyboard = false;
+
 function getEventPos(e) {
   if (e.touches && e.touches.length > 0) {
     return { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -842,6 +848,7 @@ function getEventPos(e) {
   return { x: e.clientX, y: e.clientY };
 }
 
+// Touch/Mouse events
 canvas.addEventListener('touchstart', onDragStart, { passive: false });
 canvas.addEventListener('mousedown', onDragStart);
 canvas.addEventListener('touchmove', onDragMove, { passive: false });
@@ -849,10 +856,82 @@ canvas.addEventListener('mousemove', onDragMove);
 canvas.addEventListener('touchend', onDragEnd);
 canvas.addEventListener('mouseup', onDragEnd);
 
+// Keyboard events
+document.addEventListener('keydown', (e) => {
+  keysPressed[e.code] = true;
+  
+  // Switch to keyboard mode
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) {
+    usingKeyboard = true;
+    
+    if ((gameState === State.PLAYING || gameState === State.SWINGING) && e.code !== 'Space') {
+      gameState = State.AIMING;
+    }
+    
+    // Launch on space
+    if (e.code === 'Space' && (gameState === State.AIMING || gameState === State.PLAYING || gameState === State.SWINGING)) {
+      e.preventDefault();
+      launchWithKeyboard();
+    }
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  keysPressed[e.code] = false;
+});
+
+function updateKeyboardAim() {
+  if (!usingKeyboard || gameState !== State.AIMING) return;
+  
+  const aimSpeed = 0.04;
+  const powerSpeed = 0.02;
+  
+  // Adjust angle with left/right
+  if (keysPressed['ArrowLeft'] || keysPressed['KeyA']) {
+    keyboardAim.angle += aimSpeed;
+  }
+  if (keysPressed['ArrowRight'] || keysPressed['KeyD']) {
+    keyboardAim.angle -= aimSpeed;
+  }
+  
+  // Adjust power with up/down
+  if (keysPressed['ArrowUp'] || keysPressed['KeyW']) {
+    keyboardAim.power = Math.min(1, keyboardAim.power + powerSpeed);
+  }
+  if (keysPressed['ArrowDown'] || keysPressed['KeyS']) {
+    keyboardAim.power = Math.max(0.2, keyboardAim.power - powerSpeed);
+  }
+  
+  // Clamp angle (between pointing left-up and right-up)
+  keyboardAim.angle = Math.max(Math.PI * 0.15, Math.min(Math.PI * 0.85, keyboardAim.angle));
+}
+
+function launchWithKeyboard() {
+  if (gameState !== State.AIMING && gameState !== State.PLAYING && gameState !== State.SWINGING) return;
+  
+  const power = keyboardAim.power * 22;
+  const angle = keyboardAim.angle;
+  
+  punch.attachedBranch = null;
+  punch.vx = Math.cos(angle) * power;
+  punch.vy = -Math.sin(angle) * power;
+  punch.angularVel = (Math.random() - 0.5) * 0.15;
+  punch.expression = 'happy';
+  
+  playSound('jump');
+  
+  const screenY = canvas.height - (punch.y - cameraY);
+  emitParticles(punch.x, screenY, '#CCCCCC', 10);
+  
+  gameState = State.FLYING;
+  usingKeyboard = false;
+}
+
 function onDragStart(e) {
   if (gameState !== State.PLAYING && gameState !== State.SWINGING) return;
   e.preventDefault();
   
+  usingKeyboard = false;
   isDragging = true;
   const pos = getEventPos(e);
   dragStart = pos;
@@ -1198,38 +1277,87 @@ function resetGame() {
 // DRAW AIM INDICATOR
 // ============================================
 function drawAimIndicator() {
-  if (!isDragging || gameState !== State.AIMING) return;
+  if (gameState !== State.AIMING) return;
   
-  const dx = dragStart.x - dragCurrent.x;
-  const dy = dragStart.y - dragCurrent.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
+  let power, angle;
   
-  if (dist < 20) return;
-  
-  const power = Math.min(dist / 80, 1);
-  const angle = Math.atan2(dy, dx);
+  if (usingKeyboard) {
+    // Keyboard aiming
+    power = keyboardAim.power;
+    angle = keyboardAim.angle;
+  } else if (isDragging) {
+    // Mouse/touch aiming
+    const dx = dragStart.x - dragCurrent.x;
+    const dy = dragStart.y - dragCurrent.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (dist < 20) return;
+    
+    power = Math.min(dist / 80, 1);
+    angle = Math.atan2(dy, dx);
+  } else {
+    return;
+  }
   
   const screenY = canvas.height - (punch.y - cameraY);
   
   // Draw trajectory dots
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-  for (let t = 0; t < 1; t += 0.08) {
-    const px = punch.x + Math.cos(angle) * power * t * 180;
-    const py = screenY - Math.sin(angle) * power * t * 180 + t * t * 120;
-    const size = 6 * (1 - t * 0.7);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  for (let t = 0; t < 1; t += 0.06) {
+    const px = punch.x + Math.cos(angle) * power * t * 200;
+    const py = screenY - Math.sin(angle) * power * t * 200 + t * t * 150;
+    const size = 8 * (1 - t * 0.6);
     
     ctx.beginPath();
     ctx.arc(px, py, size, 0, Math.PI * 2);
     ctx.fill();
   }
   
-  // Power indicator circle around Punch
+  // Arrow showing direction
+  const arrowLen = 60 + power * 40;
+  const arrowX = punch.x + Math.cos(angle) * arrowLen;
+  const arrowY = screenY - Math.sin(angle) * arrowLen;
+  
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(punch.x, screenY);
+  ctx.lineTo(arrowX, arrowY);
+  ctx.stroke();
+  
+  // Arrowhead
+  const headAngle = 0.4;
+  const headLen = 15;
+  ctx.beginPath();
+  ctx.moveTo(arrowX, arrowY);
+  ctx.lineTo(
+    arrowX - Math.cos(angle - headAngle) * headLen,
+    arrowY + Math.sin(angle - headAngle) * headLen
+  );
+  ctx.moveTo(arrowX, arrowY);
+  ctx.lineTo(
+    arrowX - Math.cos(angle + headAngle) * headLen,
+    arrowY + Math.sin(angle + headAngle) * headLen
+  );
+  ctx.stroke();
+  
+  // Power indicator circle
   const hue = (1 - power) * 120;
   ctx.strokeStyle = `hsla(${hue}, 80%, 50%, 0.8)`;
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 5;
   ctx.beginPath();
-  ctx.arc(punch.x, screenY, 60 + power * 30, 0, Math.PI * 2);
+  ctx.arc(punch.x, screenY, 70 + power * 30, 0, Math.PI * 2);
   ctx.stroke();
+  
+  // Power text (keyboard mode)
+  if (usingKeyboard) {
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Power: ${Math.round(power * 100)}%`, punch.x, screenY + 120);
+    ctx.fillText('← → Aim  |  ↑ ↓ Power  |  SPACE Launch', punch.x, screenY + 145);
+  }
 }
 
 // ============================================
@@ -1294,6 +1422,7 @@ function gameLoop() {
   // Update
   if (gameState !== State.GAME_OVER) {
     updatePhysics();
+    updateKeyboardAim();
   }
   updateParticles();
   
